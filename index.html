@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#3a2215">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="Filter coffee recipe book with a guided brew timer">
+<title>Brewing Time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* VOICE: calm brew-bar tool, precise like a barista's scale, warm not fussy
+   IDEA: a roaster's recipe card + the brew scale's readout
+   PICTURE: the pour curve (water over time) on every recipe; a timer ring in brew mode
+   COLOUR and TYPE: dark-roast brown band, white paper, coffee-cherry red accent; Big Shoulders numbers, Manrope text
+   LAYOUT: recipe shelf left, recipe card right; stacks to one column on phones */
+:root{color-scheme:light dark;
+--bg:light-dark(#f7f3ee,#120e0b);--paper:light-dark(#fff,#1c1612);--ink:light-dark(#24170e,#f2e9df);
+--mute:light-dark(#76665a,#a99786);--line:light-dark(#e7ddd2,#33291f);--kraft:light-dark(#efe2cf,#2c2119);
+--head:light-dark(#3a2215,#1f1610);--headink:#f6ece2;--acc:light-dark(#c2372a,#ff6f5a);--accink:#fff;
+--num:'Big Shoulders Display',Impact,sans-serif}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Manrope,system-ui,sans-serif;overflow-x:clip}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+button,.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--line);background:var(--paper);cursor:pointer;font-weight:600;text-decoration:none;font-size:15px}
+button:hover,.btn:hover{border-color:var(--mute)}
+.pri{background:var(--acc);border-color:var(--acc);color:var(--accink)}
+.pri:hover{filter:brightness(1.08);border-color:var(--acc)}
+.ghost{background:transparent;border-color:transparent}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+input,select,textarea{width:100%;min-height:44px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:16px}
+textarea{min-height:90px;resize:vertical}
+label{display:block;font-size:13px;font-weight:600;color:var(--mute)}
+label>input,label>select,label>textarea{margin-top:4px;color:var(--ink);font-weight:500}
+.top{background:var(--head);color:var(--headink);display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px max(3vw,16px)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;margin-right:auto}
+.brand b{font:800 28px/1 var(--num);letter-spacing:.02em}
+.top .btn,.top button{background:transparent;color:var(--headink);border-color:#ffffff40}
+.top .pri{background:var(--acc);border-color:var(--acc)}
+#store{font-size:13px;opacity:.8;width:100%;order:9}
+@media(min-width:700px){#store{width:auto;order:0}}
+.shell{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);max-width:1320px;margin:0 auto}
+aside{border-right:1px solid var(--line);padding:18px;min-height:calc(100vh - 64px)}
+#main{padding:clamp(18px,3vw,40px)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.chip{min-height:34px;padding:0 12px;border-radius:99px;font-size:13px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.item{display:block;padding:12px 14px;border-radius:12px;text-decoration:none;border:1px solid transparent;margin-bottom:4px}
+.item:hover{background:var(--paper)}
+.item.on{background:var(--paper);border-color:var(--line);box-shadow:inset 4px 0 0 var(--acc)}
+.item b{display:block;font-size:16px}
+.item small{color:var(--mute);font-size:13px;display:block}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--kraft)}
+.star{color:var(--acc)}
+h1{font:800 clamp(34px,5vw,52px)/1.05 var(--num);margin:8px 0 6px;text-wrap:balance}
+h2{font-size:18px;margin:0 0 12px}
+.muted{color:var(--mute)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 20px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.stat{background:var(--paper);padding:12px 14px}
+.stat span{display:block;font-size:13px;color:var(--mute);font-weight:600}
+.stat b{font:800 30px/1.1 var(--num);white-space:nowrap}
+.stat b.sc{color:var(--acc)}
+.stat small{font-size:13px;color:var(--mute)}
+.scale{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0;padding:10px 12px;background:var(--kraft);border-radius:12px;font-size:15px;font-weight:600}
+.scale input{width:92px;min-height:40px;background:var(--paper)}
+.scale button{min-height:40px;padding:0 12px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:18px}
+.fig{position:relative;min-height:240px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px}
+.grid2 .card{margin-top:18px}
+dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0}
+dt{color:var(--mute);font-size:14px}dd{margin:0;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;font-size:13px;color:var(--mute);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.n,th.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.notes{white-space:pre-wrap}
+fieldset{border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 0 18px;background:var(--paper)}
+legend{font-weight:700;padding:0 6px}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px}
+.f .wide{grid-column:1/-1}
+.srow{display:grid;grid-template-columns:120px 80px 90px minmax(0,1fr) auto;gap:8px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}
+.srow .acts{display:flex;gap:4px}.srow .acts button{min-width:44px;padding:0}
+.total{font-size:14px;font-weight:600;margin:10px 0}
+.total.off{color:var(--acc)}
+.empty{max-width:520px;margin:6vh auto;text-align:center}
+.empty svg{width:min(260px,70%);height:auto}
+.back{display:none;margin-bottom:6px}
+#brew{position:fixed;inset:0;background:var(--head);color:var(--headink);z-index:20;display:flex;flex-direction:column;overflow:auto}
+#brew[hidden],#modal[hidden]{display:none}
+.bwrap{max-width:980px;margin:0 auto;width:100%;padding:16px max(4vw,16px) 28px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:center;flex:1}
+.ring{position:relative;aspect-ratio:1;max-width:440px;width:100%;margin:0 auto}
+.ring svg{width:100%;height:100%}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18%}
+.ring .el{font:800 clamp(56px,11vw,96px)/1 var(--num)}
+.ring .ins{font-size:clamp(18px,2.4vw,24px);font-weight:700;margin-top:6px}
+.ring .ins b{color:#ff8a76}
+.ring .sub{font-size:14px;opacity:.75}
+.blist{list-style:none;margin:0;padding:0}
+.blist li{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:10px;padding:10px 12px;border-radius:10px;opacity:.6}
+.blist li.now{background:#ffffff18;opacity:1;box-shadow:inset 4px 0 0 #ff8a76}
+.blist li.done{opacity:.35}
+.blist .n{text-align:right;font-weight:700;white-space:nowrap}
+.bctl{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+#brew button{background:transparent;color:var(--headink);border-color:#ffffff40}
+#brew button.pri{background:var(--acc);border-color:var(--acc);min-width:140px}
+.bhead{display:flex;align-items:center;gap:12px;padding:12px max(4vw,16px);border-bottom:1px solid #ffffff20}
+.bhead b{font:800 24px/1 var(--num);margin-right:auto}
+#modal{position:fixed;inset:0;background:#0008;z-index:30;display:flex;align-items:center;justify-content:center;padding:16px}
+.mbox{background:var(--paper);border-radius:18px;padding:22px;width:min(560px,100%);max-height:90vh;overflow:auto}
+.mbox textarea{min-height:140px;font-size:13px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;display:flex;gap:12px;align-items:center;z-index:40;font-weight:600;max-width:92vw}
+#toast[hidden]{display:none}
+#toast button{min-height:34px;background:transparent;color:inherit;border-color:currentColor}
+.sample{font-size:13px;color:var(--mute);margin-top:8px}
+@media(max-width:899px){.shell{display:block}aside{border:0;min-height:0}body.focus aside{display:none}body.has:not(.focus) #main{display:none}body:not(.has) #list{display:none}.back{display:inline-flex}}
+@media(max-width:700px){.bwrap{grid-template-columns:minmax(0,1fr)}.srow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.srow .note{grid-column:1/-1}.srow .acts{grid-column:1/-1;justify-content:flex-end}}
+@media(max-width:600px){table{font-size:14px}.stack thead{display:none}.stack tr{display:grid;padding-block:8px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:7em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:6.5em;margin-inline-start:-7em;color:var(--mute);font-size:13px}.stack td:empty{display:none}}
+@media(prefers-reduced-motion:no-preference){.ring .arc{transition:stroke-dashoffset .25s linear}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#">
+    <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><path d="M6 9h28l-10 16h-8z" fill="#f6ece2"/><path d="M6 9h28l-2 3H8z" fill="#ff8a76"/><rect x="12" y="27" width="16" height="3" rx="1.5" fill="#f6ece2"/><path d="M20 32c-2 3 2 3 0 6" stroke="#ff8a76" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+    <b>Brewing Time</b>
+  </a>
+  <span id="store">Saved in this browser</span>
+  <button id="syncBtn" type="button">Sync</button>
+  <button id="backupBtn" type="button">Backup</button>
+  <a class="btn pri" href="#new">+ New recipe</a>
+</header>
+<div class="shell">
+  <aside>
+    <input id="search" type="search" placeholder="Search recipes, beans, roasters…" aria-label="Search recipes">
+    <div class="chips" id="chips"></div>
+    <nav id="list" aria-label="Recipes"></nav>
+  </aside>
+  <section id="main" aria-live="polite"></section>
+</div>
+<div id="brew" hidden></div>
+<div id="modal" hidden><div class="mbox" id="mbox"></div></div>
+<div id="toast" hidden></div>
+<script>
+{
+const $=s=>document.querySelector(s);
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=s=>{s=Math.max(0,Math.round(+s||0));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+const parseT=v=>{v=String(v??'').trim();if(!v)return 0;if(v.includes(':')){const[m,s]=v.split(':');return(+m||0)*60+(+s||0)}return +v||0};
+const nr=(v,d=1)=>String(Math.round((+v||0)*10**d)/10**d);
+const newId=()=>'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const DEFAULT_METHODS=['V60','Kalita Wave','Chemex','Origami','Orea','April','Melitta'];
+const TYPES={bloom:'Bloom',pour:'Pour',swirl:'Swirl',stir:'Stir',wait:'Wait',drawdown:'Drawdown'};
+const LS='pournotes.v1';
+let recipes=new Map(),customMethods=[],mode='local',q='',mf='All',k=1,kFor=null,draft=null,mainKey='',roChart=null,toastT=null;
+
+/* ---------- storage: this browser + GitHub Gist sync ---------- */
+const LSS='pournotes.sync',FILE='pour-notes.json',API='https://api.github.com';
+let deleted={},sync={},busy=false,again=false,syncT=null;
+try{sync=JSON.parse(localStorage.getItem(LSS)||'{}')||{}}catch(e){sync={}}
+function saveSync(){try{localStorage.setItem(LSS,JSON.stringify(sync))}catch(e){}}
+function lsLoad(){try{const d=JSON.parse(localStorage.getItem(LS)||'{}');(d.recipes||[]).forEach(r=>recipes.set(r.id,r));customMethods=d.methods||[];deleted=d.deleted||{}}catch(e){}}
+function lsWrite(){try{localStorage.setItem(LS,JSON.stringify(snapshot()))}catch(e){toast('Could not save in this browser')}}
+function lsSave(){lsWrite();scheduleSync(3000)}
+function ready(){return true}
+async function persist(r){r={...r,mtime:Date.now()};recipes.set(r.id,r);delete deleted[r.id];render();lsSave();return true}
+async function removeR(id){recipes.delete(id);deleted[id]=Date.now();render();lsSave()}
+async function saveMethods(){lsSave()}
+function snapshot(){return{app:'pour-notes',version:2,methods:customMethods,recipes:[...recipes.values()],deleted}}
+function sig(s){return JSON.stringify([[...(s.methods||[])].sort(),(s.recipes||[]).map(r=>r.id+':'+(r.mtime||0)).sort(),Object.keys(s.deleted||{}).sort()])}
+function setSync(t){$('#store').textContent=t}
+function syncIdle(){setSync(sync.token?(sync.last?'Synced '+new Date(sync.last).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'Sync ready'):'Saved in this browser · sync off')}
+async function gh(path,opt={}){
+  const res=await fetch(API+path,{...opt,cache:'no-store',headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',Authorization:'Bearer '+sync.token,...(opt.body?{'Content-Type':'application/json'}:{})}});
+  if(!res.ok){const e=new Error('GitHub '+res.status);e.status=res.status;throw e}return res.json()}
+async function findOrCreate(){
+  for(let p=1;p<=10;p++){const l=await gh(`/gists?per_page=100&page=${p}`);const g=l.find(x=>x.files&&x.files[FILE]);if(g)return g.id;if(l.length<100)break}
+  const g=await gh('/gists',{method:'POST',body:JSON.stringify({description:'Brewing Time — coffee recipes',public:false,files:{[FILE]:{content:JSON.stringify(snapshot(),null,1)}}})});
+  return g.id}
+async function pullRemote(){
+  const g=await gh('/gists/'+encodeURIComponent(sync.gistId));const f=g.files&&g.files[FILE];if(!f)return null;
+  let txt=f.content;if(f.truncated){txt=await (await fetch(f.raw_url,{cache:'no-store'})).text()}
+  try{const d=JSON.parse(txt);return d&&typeof d==='object'?d:null}catch(e){return null}}
+function merge(remote){
+  let changed=false;
+  for(const[id,t]of Object.entries(remote.deleted||{}))if(!(deleted[id]>=t))deleted[id]=t;
+  for(const x of remote.recipes||[]){if(!x||typeof x!=='object'||!/^[A-Za-z0-9_-]{1,60}$/.test(x.id||''))continue;const loc=recipes.get(x.id);if(!loc||(x.mtime||0)>(loc.mtime||0)){recipes.set(x.id,x);changed=true}}
+  for(const[id,t]of Object.entries(deleted)){const r=recipes.get(id);if(r&&(r.mtime||0)<=t){recipes.delete(id);changed=true}}
+  for(const m of remote.methods||[])if(typeof m==='string'&&!customMethods.includes(m)){customMethods=[...customMethods,m];changed=true}
+  const old=Date.now()-180*864e5;for(const id in deleted)if(deleted[id]<old)delete deleted[id];
+  return changed}
+function scheduleSync(ms){if(!sync.token)return;clearTimeout(syncT);syncT=setTimeout(doSync,ms)}
+async function doSync(){
+  if(!sync.token)return syncIdle();
+  if(busy){again=true;return}
+  busy=true;setSync('Syncing…');
+  try{
+    if(!sync.gistId){sync.gistId=await findOrCreate();saveSync()}
+    const remote=(await pullRemote())||{recipes:[],deleted:{},methods:[]};
+    if(merge(remote)){lsWrite();if(!mainKey.startsWith('edit'))mainKey='';render()}
+    if(sig(snapshot())!==sig(remote))await gh('/gists/'+encodeURIComponent(sync.gistId),{method:'PATCH',body:JSON.stringify({files:{[FILE]:{content:JSON.stringify(snapshot(),null,1)}}})});
+    sync.last=Date.now();sync.err='';saveSync();syncIdle();
+  }catch(e){
+    if(e.status===404){sync.gistId='';saveSync()}
+    sync.err=e.status===401?'GitHub rejected the token — open Sync to fix it':e.status===403?'GitHub refused (check the token has the gist scope)':e.status===404?'Gist not found — will create a new one':navigator.onLine===false?'Offline — will sync when back online':'Sync failed — will retry';
+    setSync(sync.err);if(e.status!==401&&e.status!==403)scheduleSync(60000);
+  }finally{busy=false;if(!$('#modal').hidden&&$('#syncInfo'))$('#syncInfo').innerHTML=syncInfo();if(again){again=false;scheduleSync(1500)}}}
+function syncInfo(){return sync.token?`Connected on this device.${sync.gistId?` Gist: <a href="https://gist.github.com/${esc(sync.gistId)}" target="_blank" rel="noopener">${esc(sync.gistId.slice(0,10))}…</a>`:''}${sync.last?` Last sync ${esc(new Date(sync.last).toLocaleString())}.`:''}${sync.err?`<br><b>${esc(sync.err)}</b>`:''}`:'Not connected on this device.'}
+function openSync(){
+  modal(`<h2>Sync with GitHub Gist</h2>
+  <p class="muted" style="font-size:14px">Your recipes are saved in this browser and copied to a secret gist in your GitHub account, so every device you connect stays up to date. Use a token that has only the <b>gist</b> scope: <a href="https://github.com/settings/tokens/new?scopes=gist&description=Brewing%20Time" target="_blank" rel="noopener">create one on GitHub</a>. Paste the same token on each device.</p>
+  <p id="syncInfo" style="font-size:14px">${syncInfo()}</p>
+  <div class="f"><label class="wide">GitHub token<input id="sTok" type="password" autocomplete="off" spellcheck="false" placeholder="${sync.token?'Saved on this device — paste to replace':'ghp_…'}"></label>
+  <label class="wide">Gist ID (optional)<input id="sGist" value="${esc(sync.gistId||'')}" spellcheck="false" placeholder="Leave empty to find or create it automatically"></label></div>
+  <div class="bar"><button type="button" class="pri" id="sSave">${sync.token?'Save &amp; sync now':'Connect'}</button>${sync.token?'<button type="button" id="sOff">Disconnect this device</button>':''}<button type="button" data-close>Close</button></div>`,m=>{
+    m.querySelector('#sSave').onclick=()=>{const t=m.querySelector('#sTok').value.trim(),g=m.querySelector('#sGist').value.trim().replace(/^.*\//,'');
+      if(!t&&!sync.token){toast('Paste a GitHub token first');return}
+      if(t)sync.token=t;if(g!==(sync.gistId||'')){sync.gistId=g;sync.last=0}sync.err='';saveSync();m.querySelector('#sTok').value='';doSync()};
+    const off=m.querySelector('#sOff');if(off)off.onclick=()=>{sync={};saveSync();closeModal();syncIdle();toast('Sync turned off on this device — your recipes stay here')}});
+}
+function init(){
+  lsLoad();syncIdle();mainKey='';render();doSync();
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleSync(300)});
+  window.addEventListener('online',()=>scheduleSync(300));
+  setInterval(()=>{if(document.visibilityState==='visible')scheduleSync(0)},180000);
+}
+
+/* ---------- helpers ---------- */
+function allMethods(extra){const s=[...DEFAULT_METHODS,...customMethods];if(extra&&!s.includes(extra))s.push(extra);return s}
+function cum(r,kk=1){let c=0;return(r.steps||[]).map(s=>{const g=(+s.g||0)*kk;c+=g;return{...s,g,c}})}
+function totalTime(r){const st=r.steps||[];const last=st.length?Math.max(...st.map(s=>+s.at||0)):0;return Math.max(+r.time||0,last+20)}
+function route(){const h=decodeURIComponent(location.hash.slice(1));if(h==='new')return{v:'edit',id:null};const m=h.match(/^(recipe|edit)-([A-Za-z0-9_-]+)$/);if(m)return{v:m[1]==='recipe'?'detail':'edit',id:m[2]};return{v:'home'}}
+function sorted(){return[...recipes.values()].sort((a,b)=>(b.fav?1:0)-(a.fav?1:0)||(b.updatedAt||0)-(a.updatedAt||0))}
+function matches(r){if(mf!=='All'&&r.method!==mf)return false;if(!q)return true;const b=r.bean||{};return[r.name,r.method,b.name,b.roaster,b.origin,b.process,b.variety,r.notes].join(' ').toLowerCase().includes(q)}
+function toast(msg,action,fn){const t=$('#toast');clearTimeout(toastT);t.innerHTML=`<span>${esc(msg)}</span>${action?`<button type="button" id="tAct">${esc(action)}</button>`:''}`;t.hidden=false;if(action)$('#tAct').onclick=()=>{t.hidden=true;fn()};toastT=setTimeout(()=>t.hidden=true,6000)}
+function modal(html,bind){$('#mbox').innerHTML=html;$('#modal').hidden=false;bind&&bind($('#mbox'));const f=$('#mbox').querySelector('input,textarea,button.pri');f&&f.focus()}
+function closeModal(){$('#modal').hidden=true}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal'||e.target.dataset.close!==undefined)closeModal()});
+
+/* ---------- list ---------- */
+function renderList(cur){
+  const used=[...new Set([...recipes.values()].map(r=>r.method).filter(Boolean))];
+  if(mf!=='All'&&!used.includes(mf))mf='All';
+  $('#chips').innerHTML=['All',...used].map(m=>`<button type="button" class="chip${m===mf?' on':''}" data-m="${esc(m)}">${esc(m)}</button>`).join('');
+  const items=sorted().filter(matches);
+  if(mode==='loading'&&!recipes.size){$('#list').innerHTML='<p class="muted">Loading your recipes…</p>';return}
+  $('#list').innerHTML=items.length?items.map(r=>`<a class="item${r.id===cur?' on':''}" href="#recipe-${r.id}">
+    <span class="tag">${esc(r.method||'Pour-over')}</span>${r.fav?' <span class="star" aria-label="Favourite">★</span>':''}
+    <b>${esc(r.name)}</b><small>${nr(r.dose)} g · ${nr(r.water,0)} g · 1:${nr(r.water/r.dose)} · ${r.temp?nr(r.temp,0)+'°C':'—'}</small>
+    ${r.bean&&r.bean.name?`<small>${esc(r.bean.name)}${r.bean.roaster?' · '+esc(r.bean.roaster):''}</small>`:''}</a>`).join('')
+    :`<p class="muted">${recipes.size?'No recipes match.':'No recipes yet.'}</p>`;
+}
+$('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(b){mf=b.dataset.m;renderList(route().id)}});
+$('#search').addEventListener('input',e=>{q=e.target.value.trim().toLowerCase();renderList(route().id)});
+
+/* ---------- main ---------- */
+function render(){
+  const rt=route();let cur=rt.id;
+  if(rt.v==='home'&&matchMedia('(min-width:900px)').matches){const f=sorted()[0];if(f)cur=f.id}
+  document.body.classList.toggle('focus',rt.v!=='home');document.body.classList.toggle('has',recipes.size>0||mode==='loading');
+  renderList(cur);
+  if(rt.v==='edit'){
+    const key='edit:'+(rt.id||'new');
+    if(mainKey===key&&draft)return;
+    if(rt.id&&!recipes.has(rt.id)){if(mode==='loading'){$('#main').innerHTML='<p class="muted">Loading…</p>';return}location.hash='';return}
+    draft=rt.id?JSON.parse(JSON.stringify(recipes.get(rt.id))):blank();
+    mainKey=key;editor();return}
+  draft=null;
+  const r=cur&&recipes.get(cur);
+  if(r){if(kFor!==r.id){k=1;kFor=r.id}mainKey='detail:'+r.id;detail(r);return}
+  mainKey='home';
+  if(rt.v==='detail'&&mode==='loading'){$('#main').innerHTML='<p class="muted">Loading…</p>';return}
+  $('#main').innerHTML=emptyState();
+}
+function emptyState(){
+  if(mode==='loading')return'<p class="muted">Loading your recipes…</p>';
+  return`<div class="empty">${dripperArt()}
+  <h1>${recipes.size?'Pick a recipe':'Your recipe shelf is empty'}</h1>
+  ${sync.token&&!sync.last&&!recipes.size?'<p><b>Fetching your recipes from your gist…</b></p>':''}<p class="muted">Save a recipe with its dose, water, grind, temperature, beans and each pour. Then press Brew and the timer walks you through every pour.</p>
+  <div class="bar" style="justify-content:center"><a class="btn pri" href="#new">+ New recipe</a>${recipes.size?'':sync.token&&!sync.last?'':'<button type="button" id="samples">Add 3 starter recipes</button>'}</div></div>`}
+function dripperArt(){return`<svg viewBox="0 0 260 200" aria-hidden="true">
+  <ellipse cx="130" cy="188" rx="96" ry="8" fill="var(--line)"/>
+  <path d="M78 120h104l-8 64H86z" fill="var(--kraft)"/><path d="M86 184h88l1-8H85z" fill="var(--line)"/>
+  <path d="M60 40h140l-46 64h-48z" fill="var(--acc)"/><path d="M60 40h140l-6 8H66z" fill="#ffffff55"/>
+  <rect x="96" y="104" width="68" height="10" rx="5" fill="var(--ink)"/>
+  <path d="M130 116v16" stroke="var(--ink)" stroke-width="5" stroke-linecap="round" stroke-dasharray="4 7"/>
+  <path d="M84 138h92" stroke="var(--ink)" stroke-opacity=".25" stroke-width="3"/></svg>`}
+$('#main').addEventListener('click',e=>{if(e.target.id==='samples')addSamples()});
+
+function detail(r){
+  const d=r.dose*k,w=r.water*k,b=r.bean||{},steps=cum(r,k),T=totalTime(r),sc=k!==1?' sc':'';
+  const row=(l,v)=>v?`<dt>${l}</dt><dd>${esc(v)}</dd>`:'';
+  const beans=[row('Coffee',b.name),row('Roaster',b.roaster),row('Origin',b.origin),row('Variety',b.variety),row('Process',b.process),row('Roast',b.roast),row('Roasted',b.roastDate)].join('');
+  const gear=[row('Brewer',r.method),row('Grinder',r.grinder),row('Setting',r.grindSetting),row('Filter',r.filter),row('Water',r.waterRecipe)].join('');
+  const age=b.roastDate&&!isNaN(new Date(b.roastDate))?Math.floor((Date.now()-new Date(b.roastDate))/864e5):null;
+  $('#main').innerHTML=`<a class="btn ghost back" href="#">← All recipes</a>
+  <span class="tag">${esc(r.method||'Pour-over')}</span>
+  <h1>${esc(r.name)}</h1>
+  ${b.name?`<div class="muted">${esc(b.name)}${b.roaster?' · '+esc(b.roaster):''}${age!==null&&age>=0?` · roasted ${age} day${age===1?'':'s'} ago`:''}</div>`:''}
+  <div class="bar">
+    <button type="button" class="pri" id="brewBtn">▶ Brew${k!==1?' scaled':''}</button>
+    <a class="btn" href="#edit-${r.id}">Edit</a>
+    <button type="button" id="favBtn" aria-pressed="${!!r.fav}">${r.fav?'★ Favourite':'☆ Favourite'}</button>
+    <button type="button" id="dupBtn">Duplicate</button>
+    <button type="button" id="delBtn" class="ghost">Delete</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><span>Coffee</span><b class="${sc}">${nr(d)} g</b></div>
+    <div class="stat"><span>Water</span><b class="${sc}">${nr(w,0)} g</b></div>
+    <div class="stat"><span>Ratio</span><b>1:${nr(r.water/r.dose)}</b></div>
+    <div class="stat"><span>Temperature</span><b>${r.temp?nr(r.temp,0)+'°C':'—'}</b></div>
+    <div class="stat"><span>Grind</span><b>${esc(r.grindSetting||r.grind||'—')}</b>${r.grindSetting&&r.grind?`<small>${esc(r.grind)}</small>`:''}</div>
+    <div class="stat"><span>Total time</span><b>${fmt(T)}</b></div>
+  </div>
+  <div class="scale"><span>Scale to</span><input id="sDose" type="number" min="1" step="0.5" value="${nr(d)}" aria-label="Coffee in grams"> g coffee
+    <span>or</span><input id="sWater" type="number" min="10" step="10" value="${nr(w,0)}" aria-label="Water in grams"> g water
+    <button type="button" data-k="0.5">½×</button><button type="button" data-k="2">2×</button>${k!==1?'<button type="button" data-k="1">Reset</button>':''}</div>
+  <div class="card"><h2>Pour schedule${k!==1?` <span class="muted">· scaled ${nr(k,2)}×</span>`:''}</h2>
+    <div class="fig" id="fig"><svg id="chart" role="img" aria-label="Water poured over time"></svg></div>
+    ${steps.length?`<table class="stack"><thead><tr><th>Time</th><th>Step</th><th class="n">Add</th><th class="n">Scale reads</th><th>Note</th></tr></thead><tbody>
+    ${steps.map(s=>`<tr><td class="n" style="text-align:left">${fmt(s.at)}</td><td><b>${TYPES[s.type]||'Pour'}</b></td><td class="n">${s.g?'+'+nr(s.g,0)+' g':''}</td><td class="n">${nr(s.c,0)} g</td><td>${esc(s.note||'')}</td></tr>`).join('')}
+    </tbody></table>`:'<p class="muted">No steps yet — edit the recipe to add your pours.</p>'}
+  </div>
+  <div class="grid2">
+    <div class="card"><h2>Beans</h2>${beans?`<dl>${beans}</dl>`:'<p class="muted">Not recorded.</p>'}</div>
+    <div class="card"><h2>Gear &amp; water</h2>${gear?`<dl>${gear}</dl>`:'<p class="muted">Not recorded.</p>'}</div>
+  </div>
+  ${r.notes?`<div class="card"><h2>Notes</h2><div class="notes">${esc(r.notes)}</div></div>`:''}
+  ${r.sample?'<p class="sample">Starter recipe — adjust it to your beans and grinder.</p>':''}`;
+  const setK=v=>{if(v>0&&isFinite(v)){k=v;detail(r)}};
+  $('#sDose').onchange=e=>setK(+e.target.value/r.dose);
+  $('#sWater').onchange=e=>setK(+e.target.value/r.water);
+  $('#main').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>setK(b.dataset.k==='1'?1:k*+b.dataset.k));
+  $('#brewBtn').onclick=()=>openBrew(r,k);
+  $('#favBtn').onclick=()=>persist({...r,fav:!r.fav});
+  $('#dupBtn').onclick=async()=>{const c={...JSON.parse(JSON.stringify(r)),id:newId(),name:r.name+' (copy)',fav:false,sample:false,createdAt:Date.now(),updatedAt:Date.now()};if(await persist(c))location.hash='edit-'+c.id};
+  $('#delBtn').onclick=()=>modal(`<h2>Delete “${esc(r.name)}”?</h2><p class="muted">You can undo for a few seconds afterwards.</p><div class="bar"><button type="button" class="pri" id="cDel">Delete</button><button type="button" data-close>Cancel</button></div>`,m=>m.querySelector('#cDel').onclick=()=>{closeModal();const keep=JSON.parse(JSON.stringify(r));removeR(r.id);location.hash='';toast('Recipe deleted','Undo',()=>persist(keep))});
+  drawChart(r);
+}
+function drawChart(r){
+  const s=$('#chart');if(!s)return;roChart&&roChart.disconnect();
+  const draw=()=>{
+    const W=s.clientWidth,H=s.clientHeight;if(!W)return;
+    const st=cum(r,k),T=totalTime(r),max=Math.max(1,r.water*k),small=W<520;
+    const L=small?36:48,R=14,Tp=22,B=30,x=t=>L+(W-L-R)*t/T,y=g=>Tp+(H-Tp-B)*(1-g/max);
+    let p=`M${x(0)},${y(0)}`,c=0;
+    st.forEach((a,i)=>{if(!a.g)return;const nxt=st.slice(i+1).find(z=>z.g);const end=nxt?+nxt.at:T;const dur=Math.max(3,Math.min(a.g/(6*k),end-a.at-1));p+=` L${x(a.at)},${y(c)} L${x(a.at+dur)},${y(c+a.g)}`;c+=a.g});
+    p+=` L${x(T)},${y(c)}`;
+    const ticks=[0,.5,1].map(f=>`<line x1="${L}" x2="${W-R}" y1="${y(max*f)}" y2="${y(max*f)}" stroke="var(--line)"/><text x="${L-6}" y="${y(max*f)+4}" text-anchor="end" font-size="12" fill="var(--mute)">${nr(max*f,0)}</text>`).join('');
+    const tt=Math.max(30,Math.ceil(T/(small?3:6)/30)*30);let xt='';for(let t=0;t<=T;t+=tt)xt+=`<text x="${x(t)}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--mute)">${fmt(t)}</text>`;
+    const marks=st.filter(a=>a.g).map(a=>`<circle cx="${x(a.at)}" cy="${y(a.c-a.g)}" r="4" fill="var(--acc)"/>${small?'':`<text x="${x(a.at)+6}" y="${y(a.c)-6}" font-size="12" font-weight="700" fill="var(--ink)">${nr(a.c,0)} g</text>`}`).join('');
+    s.innerHTML=`${ticks}${xt}<path d="${p} L${x(T)},${y(0)} L${x(0)},${y(0)}Z" fill="var(--acc)" opacity=".12"/><path d="${p}" fill="none" stroke="var(--acc)" stroke-width="3" stroke-linejoin="round"/>${marks}`;
+  };
+  roChart=new ResizeObserver(draw);roChart.observe(s);
+}
+
+/* ---------- editor ---------- */
+function blank(){return{id:null,name:'',method:'V60',dose:15,water:250,temp:94,grind:'Medium-fine',grinder:'',grindSetting:'',filter:'',time:180,waterRecipe:'',bean:{},steps:[{type:'bloom',at:0,g:45,note:'Swirl to wet all grounds'},{type:'pour',at:45,g:105,note:''},{type:'pour',at:75,g:100,note:''},{type:'drawdown',at:120,g:0,note:''}],notes:''}}
+function fld(l,f,v,t='text',cls='',extra=''){return`<label class="${cls}">${l}<input type="${t}" data-f="${f}" value="${esc(v??'')}" ${extra}></label>`}
+function editor(){
+  const r=draft,b=r.bean||(r.bean={});
+  $('#main').innerHTML=`<a class="btn ghost back" href="${r.id?'#recipe-'+r.id:'#'}">← Back</a>
+  <h1>${r.id?'Edit recipe':'New recipe'}</h1>
+  <form id="form" novalidate>
+  <fieldset><legend>Basics</legend><div class="f">
+    ${fld('Recipe name *','name',r.name,'text','wide','required placeholder="e.g. Sweet morning V60"')}
+    <label>Method<select id="fMethod">${allMethods(r.method).map(m=>`<option${m===r.method?' selected':''}>${esc(m)}</option>`).join('')}<option value="__add">+ Add another method…</option></select></label>
+    ${fld('Coffee (g) *','dose',r.dose,'number','','min="1" step="0.1" inputmode="decimal"')}
+    ${fld('Water (g) *','water',r.water,'number','','min="1" step="1" inputmode="decimal"')}
+    <label>Ratio 1:<input type="number" id="fRatio" min="1" step="0.1" value="${nr(r.water/r.dose)}"></label>
+    ${fld('Temperature (°C)','temp',r.temp,'number','','step="1"')}
+    <label>Target total time<input type="text" id="fTime" value="${fmt(r.time)}" placeholder="3:00" inputmode="numeric"></label>
+  </div></fieldset>
+  <fieldset><legend>Pours &amp; steps</legend>
+    <p class="muted" style="margin:0 0 6px;font-size:14px">Time is when the step starts (m:ss). “Add” is the water for that pour; the scale reading is worked out for you.</p>
+    <div id="steps"></div>
+    <div class="total" id="total"></div>
+    <div class="bar" style="margin:0"><button type="button" id="addStep">+ Add step</button><button type="button" id="fit">Fit pours to total water</button></div>
+  </fieldset>
+  <fieldset><legend>Gear &amp; water</legend><div class="f">
+    ${fld('Grind size','grind',r.grind,'text','','placeholder="Medium-fine"')}
+    ${fld('Grinder','grinder',r.grinder,'text','','placeholder="e.g. Comandante C40"')}
+    ${fld('Grinder setting','grindSetting',r.grindSetting,'text','','placeholder="e.g. 24 clicks"')}
+    ${fld('Filter','filter',r.filter,'text','','placeholder="e.g. Hario tabbed paper"')}
+    ${fld('Water recipe','waterRecipe',r.waterRecipe,'text','wide','placeholder="e.g. Filtered tap, 80 ppm"')}
+  </div></fieldset>
+  <fieldset><legend>Beans</legend><div class="f">
+    ${fld('Coffee name','bean.name',b.name,'text','wide','placeholder="e.g. Ethiopia Guji Hambela"')}
+    ${fld('Roaster','bean.roaster',b.roaster)}${fld('Origin','bean.origin',b.origin)}
+    ${fld('Variety','bean.variety',b.variety)}${fld('Process','bean.process',b.process,'text','','placeholder="Washed, natural…" list="procs"')}
+    <label>Roast level<select data-f="bean.roast">${['','Light','Medium-light','Medium','Medium-dark','Dark'].map(o=>`<option${o===(b.roast||'')?' selected':''} value="${o}">${o||'—'}</option>`).join('')}</select></label>
+    ${fld('Roast date','bean.roastDate',b.roastDate,'date')}
+  </div><datalist id="procs"><option>Washed<option>Natural<option>Honey<option>Anaerobic<option>Wet-hulled</datalist></fieldset>
+  <fieldset><legend>Notes</legend><label>Tasting notes, tips, what to change next time<textarea data-f="notes">${esc(r.notes)}</textarea></label></fieldset>
+  <div class="bar"><button type="submit" class="pri">Save recipe</button><a class="btn" href="${r.id?'#recipe-'+r.id:'#'}">Cancel</a></div>
+  </form>`;
+  renderSteps();
+  const form=$('#form');
+  form.addEventListener('input',e=>{
+    const t=e.target;
+    if(t.dataset.f){const path=t.dataset.f.split('.');const v=t.type==='number'?(t.value===''?'':+t.value):t.value;if(path.length>1)r.bean[path[1]]=v;else r[path[0]]=v;
+      if(t.dataset.f==='dose'||t.dataset.f==='water'){if(r.dose>0&&r.water>0)$('#fRatio').value=nr(r.water/r.dose)}}
+    else if(t.id==='fRatio'){if(+t.value>0&&r.dose>0){r.water=Math.round(r.dose*t.value);form.querySelector('[data-f=water]').value=r.water}}
+    else if(t.id==='fTime')r.time=parseT(t.value);
+    else if(t.dataset.si!==undefined){const s=r.steps[+t.dataset.si],key=t.dataset.sk;s[key]=key==='at'?parseT(t.value):key==='g'?(+t.value||0):t.value}
+    showTotal();
+  });
+  form.addEventListener('change',e=>{if(e.target.dataset.sk==='type')renderSteps()});
+  $('#fMethod').onchange=e=>{if(e.target.value!=='__add'){r.method=e.target.value;return}e.target.value=r.method;
+    modal(`<h2>Add a brewing method</h2><label>Name<input id="mName" placeholder="e.g. Hario Switch, AeroPress, Clever"></label><div class="bar"><button type="button" class="pri" id="mAdd">Add method</button><button type="button" data-close>Cancel</button></div>`,m=>{
+      const add=()=>{const v=m.querySelector('#mName').value.trim();if(!v)return;if(!allMethods().includes(v)){customMethods=[...customMethods,v];saveMethods()}r.method=v;closeModal();
+        $('#fMethod').innerHTML=allMethods(r.method).map(x=>`<option${x===r.method?' selected':''}>${esc(x)}</option>`).join('')+'<option value="__add">+ Add another method…</option>'};
+      m.querySelector('#mAdd').onclick=add;m.querySelector('#mName').onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();add()}}})};
+  $('#addStep').onclick=()=>{const st=r.steps,last=st[st.length-1],used=st.reduce((a,s)=>a+(+s.g||0),0);st.push({type:'pour',at:last?(+last.at||0)+30:0,g:Math.max(0,Math.round((+r.water||0)-used)),note:''});renderSteps()};
+  $('#fit').onclick=()=>{const used=r.steps.reduce((a,s)=>a+(+s.g||0),0);if(!used||!(r.water>0))return;const f=r.water/used;let acc=0;const pours=r.steps.filter(s=>s.g>0);pours.forEach((s,i)=>{s.g=i===pours.length-1?Math.round(r.water-acc):Math.round(s.g*f);acc+=s.g});renderSteps()};
+  form.addEventListener('submit',async e=>{e.preventDefault();
+    if(!String(r.name).trim()){toast('Give the recipe a name');form.querySelector('[data-f=name]').focus();return}
+    if(!(r.dose>0)||!(r.water>0)){toast('Coffee and water need to be above 0 g');return}
+    const now=Date.now();const out={...r,name:String(r.name).trim(),dose:+r.dose,water:+r.water,temp:r.temp===''?'':+r.temp,
+      steps:r.steps.map(s=>({type:s.type,at:+s.at||0,g:+s.g||0,note:s.note||''})).sort((a,b)=>a.at-b.at),
+      id:r.id||newId(),createdAt:r.createdAt||now,updatedAt:now,sample:false};
+    if(await persist(out)){draft=null;mainKey='';location.hash='recipe-'+out.id}});
+}
+function renderSteps(){
+  const r=draft;
+  $('#steps').innerHTML=r.steps.map((s,i)=>`<div class="srow">
+    <label>Step<select data-si="${i}" data-sk="type">${Object.entries(TYPES).map(([v,l])=>`<option value="${v}"${v===s.type?' selected':''}>${l}</option>`).join('')}</select></label>
+    <label>Start<input data-si="${i}" data-sk="at" value="${fmt(s.at)}" inputmode="numeric"></label>
+    <label>Add (g)<input type="number" min="0" data-si="${i}" data-sk="g" value="${s.g||''}" placeholder="0"></label>
+    <label class="note">Note<input data-si="${i}" data-sk="note" value="${esc(s.note)}" placeholder="e.g. slow spiral, centre only"></label>
+    <div class="acts"><button type="button" data-mv="${i}" data-d="-1" aria-label="Move up">↑</button><button type="button" data-mv="${i}" data-d="1" aria-label="Move down">↓</button><button type="button" data-rm="${i}" aria-label="Remove step">✕</button></div></div>`).join('')||'<p class="muted">No steps yet.</p>';
+  $('#steps').querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{r.steps.splice(+b.dataset.rm,1);renderSteps()});
+  $('#steps').querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{const i=+b.dataset.mv,j=i+ +b.dataset.d;if(j<0||j>=r.steps.length)return;[r.steps[i],r.steps[j]]=[r.steps[j],r.steps[i]];renderSteps()});
+  showTotal();
+}
+function showTotal(){const r=draft,t=$('#total');if(!t)return;const used=r.steps.reduce((a,s)=>a+(+s.g||0),0),diff=Math.round(used-(+r.water||0));
+  t.className='total'+(diff?' off':'');t.textContent=`Pours add up to ${nr(used,0)} g of ${nr(r.water,0)} g water`+(diff?` (${diff>0?'+':''}${diff} g)`:' ✓')}
+
+/* ---------- brew mode ---------- */
+let B=null;
+function openBrew(r,kk){
+  const steps=cum(r,kk),T=totalTime(r);
+  B={r,steps,T,acc:0,t0:0,run:false,idx:-2,iv:null,ac:null,wl:null};
+  $('#brew').hidden=false;document.body.style.overflow='hidden';
+  const ticks=steps.map(s=>{const a=s.at/T*2*Math.PI-Math.PI/2;return`<line x1="${50+40*Math.cos(a)}" y1="${50+40*Math.sin(a)}" x2="${50+47*Math.cos(a)}" y2="${50+47*Math.sin(a)}" stroke="#f6ece2" stroke-width="1.2" opacity=".8"/>`}).join('');
+  $('#brew').innerHTML=`<div class="bhead"><b>${esc(r.name)}</b><span>${nr(r.dose*kk)} g · ${nr(r.water*kk,0)} g${r.temp?' · '+nr(r.temp,0)+'°C':''}</span><button type="button" id="bClose">Close</button></div>
+  <div class="bwrap"><div><div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="43.5" fill="none" stroke="#ffffff22" stroke-width="5"/>
+    <circle class="arc" id="arc" cx="50" cy="50" r="43.5" fill="none" stroke="#ff8a76" stroke-width="5" stroke-linecap="round" stroke-dasharray="273.3" stroke-dashoffset="273.3" transform="rotate(-90 50 50)"/>${ticks}</svg>
+    <div class="c"><div class="el" id="bEl">0:00</div><div class="ins" id="bIns">Ready</div><div class="sub" id="bSub">Tare your scale, then press Start</div></div></div>
+    <div class="bctl" style="justify-content:center"><button type="button" class="pri" id="bGo">Start</button><button type="button" id="bReset">Reset</button></div></div>
+    <ol class="blist" id="bList">${steps.map(s=>`<li><span>${fmt(s.at)}</span><span><b>${TYPES[s.type]||'Pour'}</b>${s.note?`<br><small>${esc(s.note)}</small>`:''}</span><span class="n">${s.g?`to ${nr(s.c,0)} g`:''}</span></li>`).join('')}<li><span>${fmt(T)}</span><span><b>Finish</b></span><span class="n"></span></li></ol></div>`;
+  $('#bClose').onclick=closeBrew;
+  $('#bGo').onclick=()=>{
+    if(!B.ac){try{B.ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+    if(B.run){B.acc=el();B.run=false;clearInterval(B.iv);$('#bGo').textContent='Resume'}
+    else{B.t0=performance.now();B.run=true;B.iv=setInterval(tick,200);$('#bGo').textContent='Pause';try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(l=>B.wl=l).catch(()=>{})}catch(e){}}
+    tick()};
+  $('#bReset').onclick=()=>{clearInterval(B.iv);B.run=false;B.acc=0;B.idx=-2;$('#bGo').textContent='Start';tick();$('#bIns').textContent='Ready';$('#bSub').textContent='Tare your scale, then press Start'};
+}
+function el(){return B.acc+(B.run?(performance.now()-B.t0)/1000:0)}
+function beep(){const a=B&&B.ac;if(!a)return;try{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;g.gain.setValueAtTime(.2,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.25);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.26)}catch(e){}try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}}
+function tick(){
+  if(!B)return;const e=el(),st=B.steps;
+  let i=-1;st.forEach((s,j)=>{if(s.at<=e)i=j});
+  const done=e>=B.T;const idx=done?st.length:i;
+  if(idx!==B.idx){if(B.idx!==-2&&B.run)beep();B.idx=idx;
+    [...$('#bList').children].forEach((li,j)=>{li.className=j===idx?'now':j<idx?'done':''});}
+  $('#bEl').textContent=fmt(Math.floor(e));
+  $('#arc').setAttribute('stroke-dashoffset',273.3*(1-Math.min(1,e/B.T)));
+  const ins=$('#bIns'),sub=$('#bSub'),nx=st[i+1];
+  if(done){ins.textContent='Done — enjoy your cup';sub.textContent=`Target finish ${fmt(B.T)}`;if(B.run){B.acc=e;B.run=false;clearInterval(B.iv);$('#bGo').textContent='Start';B.acc=0;B.idx=-2}return}
+  if(i<0){ins.innerHTML='Get ready';sub.textContent=nx?`${TYPES[nx.type]} in ${fmt(nx.at-e)}`:''}
+  else{const s=st[i];ins.innerHTML=s.g?`${TYPES[s.type]} to <b>${nr(s.c,0)} g</b>`:`${TYPES[s.type]||'Wait'} · hold at ${nr(s.c,0)} g`;
+    sub.textContent=(s.g?`+${nr(s.g,0)} g`:(s.note||''))+(nx?` · next: ${TYPES[nx.type]}${nx.g?' to '+nr(nx.c,0)+' g':''} in ${fmt(nx.at-e)}`:` · finish at ${fmt(B.T)}`)}
+}
+function closeBrew(){if(B){clearInterval(B.iv);try{B.wl&&B.wl.release()}catch(e){}try{B.ac&&B.ac.close()}catch(e){}}B=null;$('#brew').hidden=true;$('#brew').innerHTML='';document.body.style.overflow=''}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#modal').hidden)closeModal();else if(B)closeBrew()}else if(e.key===' '&&B&&e.target===document.body){e.preventDefault();$('#bGo').click()}});
+
+/* ---------- backup ---------- */
+$('#backupBtn').onclick=()=>{
+  const json=JSON.stringify({app:'pour-notes',version:1,methods:customMethods,recipes:sorted()},null,1);
+  modal(`<h2>Backup &amp; import</h2><p class="muted" style="font-size:14px">Copy this text and keep it somewhere safe. Paste it below later to restore.</p>
+  <textarea id="bkOut" readonly aria-label="Backup text">${esc(json)}</textarea><div class="bar"><button type="button" class="pri" id="bkCopy">Copy backup</button><button type="button" id="bkDl">Download .json</button></div>
+  <label>Import recipes<textarea id="bkIn" placeholder="Paste backup text here"></textarea></label>
+  <div class="bar"><button type="button" id="bkImp">Import</button><button type="button" data-close>Close</button></div>`,m=>{
+    m.querySelector('#bkCopy').onclick=async()=>{const t=m.querySelector('#bkOut');try{await navigator.clipboard.writeText(t.value);toast('Backup copied')}catch(e){t.focus();t.select();toast('Select all and copy the text')}};
+    m.querySelector('#bkDl').onclick=()=>{try{const u=URL.createObjectURL(new Blob([json],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='brewing-time-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}catch(e){toast('Download not available — use Copy instead')}};
+    m.querySelector('#bkImp').onclick=async()=>{let d;try{d=JSON.parse(m.querySelector('#bkIn').value)}catch(e){toast('That text isn’t a valid backup');return}
+      const list=Array.isArray(d)?d:(d.recipes||[]);let n=0;
+      if(Array.isArray(d.methods)){const add=d.methods.filter(x=>typeof x==='string'&&!allMethods().includes(x));if(add.length){customMethods=[...customMethods,...add];await saveMethods()}}
+      for(const x of list){if(!x||typeof x!=='object'||!x.name)continue;const id=/^[A-Za-z0-9_-]{1,60}$/.test(x.id||'')&&x.id!=='prefs'?x.id:newId();
+        if(await persist({...x,id,dose:+x.dose||15,water:+x.water||250,steps:Array.isArray(x.steps)?x.steps:[],bean:x.bean||{},updatedAt:x.updatedAt||Date.now()}))n++}
+      closeModal();toast(`Imported ${n} recipe${n===1?'':'s'}`)}});
+};
+
+/* ---------- starter recipes ---------- */
+async function addSamples(){
+  const now=Date.now(),mk=(o,i)=>({id:newId()+i,sample:true,createdAt:now-i,updatedAt:now-i,fav:false,grinder:'',filter:'',waterRecipe:'',...o});
+  const list=[
+    mk({name:'Bright single cup',method:'V60',dose:15,water:250,temp:94,grind:'Medium-fine',grindSetting:'',filter:'Tabbed paper, rinsed',time:180,
+      bean:{name:'Washed Ethiopian',origin:'Ethiopia',process:'Washed',roast:'Light'},
+      steps:[{type:'bloom',at:0,g:45,note:'Swirl to wet all grounds'},{type:'pour',at:45,g:105,note:'Steady spiral'},{type:'pour',at:75,g:100,note:'Centre pour'},{type:'swirl',at:105,g:0,note:'Gentle swirl to flatten the bed'},{type:'drawdown',at:110,g:0,note:'Aim to finish around 3:00'}],
+      notes:'Tastes sour or thin → grind finer. Bitter or drying → grind coarser.'},0),
+    mk({name:'Kalita three pours',method:'Kalita Wave',dose:20,water:320,temp:93,grind:'Medium',time:210,
+      bean:{name:'Colombian Caturra',origin:'Colombia',variety:'Caturra',process:'Washed',roast:'Medium-light'},
+      steps:[{type:'bloom',at:0,g:50,note:''},{type:'pour',at:40,g:90,note:''},{type:'pour',at:70,g:90,note:''},{type:'pour',at:100,g:90,note:''},{type:'drawdown',at:130,g:0,note:''}],notes:''},1),
+    mk({name:'Chemex for two',method:'Chemex',dose:30,water:500,temp:95,grind:'Medium-coarse',time:270,
+      bean:{name:'Natural Brazil',origin:'Brazil',process:'Natural',roast:'Medium'},
+      steps:[{type:'bloom',at:0,g:60,note:'Stir gently'},{type:'pour',at:45,g:190,note:''},{type:'pour',at:90,g:150,note:''},{type:'pour',at:135,g:100,note:''},{type:'drawdown',at:170,g:0,note:''}],notes:''},2)];
+  for(const r of list)await persist(r);
+}
+
+$('#syncBtn').onclick=openSync;
+window.addEventListener('hashchange',()=>{mainKey='';render()});
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(route().v==='home'){mainKey='';render()}},200)});
+init();
+}
+</script>
+</body>
