@@ -171,7 +171,7 @@ legend{font-weight:700;padding:0 6px}
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=s=>{s=Math.max(0,Math.round(+s||0));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
-const parseT=v=>{v=String(v??'').trim();if(!v)return 0;if(v.includes(':')){const[m,s]=v.split(':');return(+m||0)*60+(+s||0)}return +v||0};
+const parseT=v=>{v=String(v??'').trim();if(!v)return 0;const p=v.split(/\s*[:.,\s]\s*/);if(p.length>1){return Math.max(0,(parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0))}return Math.max(0,parseInt(v,10)||0)};
 const nr=(v,d=1)=>String(Math.round((+v||0)*10**d)/10**d);
 const newId=()=>'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const DEFAULT_METHODS=['V60','Kalita Wave','Chemex','Origami','Orea','April','Melitta'];
@@ -285,8 +285,9 @@ async function init(){
 
 /* ---------- helpers ---------- */
 function allMethods(extra){const s=[...DEFAULT_METHODS,...customMethods];if(extra&&!s.includes(extra))s.push(extra);return s}
-function cum(r,kk=1){let c=0;return(r.steps||[]).map(s=>{const g=(+s.g||0)*kk;c+=g;return{...s,g,c}})}
-function pourDur(s,kk=1){const f=+s.pourFor;if(f>0)return f;return s.type==='bloom'?10:Math.max(3,(+s.g||0)/(6*kk))}
+const rateOf=r=>+r.pourRate>0?+r.pourRate:6;
+function cum(r,kk=1){let c=0;const rate=rateOf(r);return(r.steps||[]).map(s=>{const g=(+s.g||0)*kk;c+=g;return{...s,g,c,rate}})}
+function pourDur(s,kk=1){const f=+s.pourFor;if(f>0)return f;return s.type==='bloom'?10:Math.max(2,(+s.g||0)/(+s.rate||6))}
 function totalTime(r){const st=r.steps||[];const last=st.length?Math.max(...st.map(s=>+s.at||0)):0;return Math.max(+r.time||0,last+20)}
 let curHash=location.hash.slice(1);
 function nav(h){h=String(h||'').replace(/^#/,'');curHash=h;mainKey='';try{if(location.hash.slice(1)!==h)location.hash=h}catch(e){}render();try{window.scrollTo(0,0)}catch(e){}}
@@ -377,7 +378,7 @@ function detail(r){
   <div class="scale"><span>Scale to</span><input id="sDose" type="number" min="1" step="0.5" value="${nr(d)}" aria-label="Coffee in grams"> g coffee
     <span>or</span><input id="sWater" type="number" min="10" step="10" value="${nr(w,0)}" aria-label="Water in grams"> g water
     <button type="button" data-k="0.5">½×</button><button type="button" data-k="2">2×</button>${k!==1?'<button type="button" data-k="1">Reset</button>':''}</div>
-  <div class="card"><h2>Pour schedule${k!==1?` <span class="muted">· scaled ${nr(k,2)}×</span>`:''}</h2>
+  <div class="card"><h2>Pour schedule <span class="muted">· pouring ${nr(rateOf(r))} g/s${k!==1?` · scaled ${nr(k,2)}×`:''}</span></h2>
     <div class="fig" id="fig"><svg id="chart" role="img" aria-label="Water poured over time"></svg></div>
     ${steps.length?`<table class="stack"><thead><tr><th>Time</th><th>Step</th><th class="n">Add</th><th class="n">Scale reads</th><th>Note</th></tr></thead><tbody>
     ${steps.map(s=>`<tr><td class="n" style="text-align:left">${fmt(s.at)}</td><td><b>${TYPES[s.type]||'Pour'}</b>${s.style?`<br><small class="muted">${STYLES[s.style]}</small>`:''}${s.type==='bloom'&&s.g?(()=>{const j=steps.indexOf(s),nx=steps[j+1],pd=pourDur(s,k),w=(nx?nx.at:T)-s.at-pd;return`<br><small class="muted">pour ${fmt(pd)}${w>0?`, then wait ${fmt(w)}`:''}</small>`})():''}</td><td class="n">${s.g?'+'+nr(s.g,0)+' g':''}</td><td class="n">${nr(s.c,0)} g</td><td>${esc(s.note||'')}</td></tr>`).join('')}
@@ -427,7 +428,7 @@ function drawChart(r){
 }
 
 /* ---------- editor ---------- */
-function blank(){return{id:null,name:'',method:'V60',dose:15,water:250,temp:94,grind:'Medium-fine',grinder:'',grindSetting:'',filter:'',time:180,waterRecipe:'',bean:{},steps:[{type:'bloom',at:0,g:45,pourFor:10,note:'Swirl to wet all grounds'},{type:'pour',at:45,g:105,note:''},{type:'pour',at:75,g:100,note:''},{type:'drawdown',at:120,g:0,note:''}],notes:''}}
+function blank(){return{id:null,name:'',method:'V60',dose:15,water:250,temp:94,grind:'Medium-fine',grinder:'',grindSetting:'',filter:'',time:180,waterRecipe:'',bean:{},pourRate:6,steps:[{type:'bloom',at:0,g:45,pourFor:10,note:'Swirl to wet all grounds'},{type:'pour',at:45,g:105,note:''},{type:'pour',at:75,g:100,note:''},{type:'drawdown',at:120,g:0,note:''}],notes:''}}
 function fld(l,f,v,t='text',cls='',extra=''){return`<label class="${cls}">${l}<input type="${t}" data-f="${f}" value="${esc(v??'')}" ${extra}></label>`}
 function editor(){
   const r=draft,b=r.bean||(r.bean={});
@@ -441,10 +442,11 @@ function editor(){
     ${fld('Water (g) *','water',r.water,'number','','min="1" step="1" inputmode="decimal"')}
     <label>Ratio 1:<input type="number" id="fRatio" min="1" step="0.1" value="${nr(r.water/r.dose)}"></label>
     ${fld('Temperature (°C)','temp',r.temp,'number','','step="1"')}
-    <label>Target total time<input type="text" id="fTime" value="${fmt(r.time)}" placeholder="3:00" inputmode="numeric"></label>
+    <label>Target total time<input type="text" id="fTime" value="${fmt(r.time)}" placeholder="3:00" inputmode="decimal" autocomplete="off"></label>
   </div></fieldset>
   <fieldset><legend>Pours &amp; steps</legend>
-    <p class="muted" style="margin:0 0 6px;font-size:14px">Time is when the step starts (m:ss). “Add” is the water for that pour; the scale reading is worked out for you.</p>
+    <div class="f" style="margin-bottom:10px"><label>Pour speed (g/s)<input type="number" data-f="pourRate" min="0.5" step="0.5" value="${rateOf(r)}" inputmode="decimal"></label><p class="muted" style="margin:0;font-size:14px;align-self:end">How fast water leaves your kettle. A gooseneck kettle at a steady pour is about 5–8 g/s. Bloom uses its own “Pour for” time.</p></div>
+    <p class="muted" style="margin:0 0 6px;font-size:14px">Time is when the step starts: type 1:15, 1,15 or 1.15 (or just seconds, like 45). “Add” is the water for that pour; the scale reading is worked out for you.</p>
     <div id="steps"></div>
     <div class="total" id="total"></div>
     <div class="bar" style="margin:0"><button type="button" id="addStep">+ Add step</button><button type="button" id="fit">Fit pours to total water</button></div>
@@ -477,6 +479,7 @@ function editor(){
     else if(t.dataset.si!==undefined){const s=r.steps[+t.dataset.si],key=t.dataset.sk;s[key]=key==='at'?parseT(t.value):(key==='g'||key==='pourFor')?(+t.value||0):t.value}
     showTotal();
   });
+  form.addEventListener('focusout',e=>{const t=e.target;if(t.id==='fTime'||t.dataset.sk==='at')t.value=fmt(parseT(t.value))});
   form.addEventListener('change',e=>{if(e.target.dataset.sk==='type')renderSteps()});
   $('#fMethod').onchange=e=>{if(e.target.value!=='__add'){r.method=e.target.value;return}e.target.value=r.method;
     modal(`<h2>Add a brewing method</h2><label>Name<input id="mName" placeholder="e.g. Hario Switch, AeroPress, Clever"></label><div class="bar"><button type="button" class="pri" id="mAdd">Add method</button><button type="button" data-close>Cancel</button></div>`,m=>{
@@ -488,7 +491,7 @@ function editor(){
   form.addEventListener('submit',async e=>{e.preventDefault();
     if(!String(r.name).trim()){toast('Give the recipe a name');form.querySelector('[data-f=name]').focus();return}
     if(!(r.dose>0)||!(r.water>0)){toast('Coffee and water need to be above 0 g');return}
-    const now=Date.now();const out={...r,name:String(r.name).trim(),dose:+r.dose,water:+r.water,temp:r.temp===''?'':+r.temp,
+    const now=Date.now();const out={...r,pourRate:rateOf(r),name:String(r.name).trim(),dose:+r.dose,water:+r.water,temp:r.temp===''?'':+r.temp,
       steps:r.steps.map(s=>({type:s.type,style:s.style||'',at:+s.at||0,g:+s.g||0,pourFor:s.type==='bloom'?(+s.pourFor||10):0,note:s.note||''})).sort((a,b)=>a.at-b.at),
       id:r.id||newId(),createdAt:r.createdAt||now,updatedAt:now,sample:false};
     if(await persist(out)){draft=null;nav('recipe-'+out.id)}});
@@ -498,7 +501,7 @@ function renderSteps(){
   $('#steps').innerHTML=r.steps.map((s,i)=>`<div class="srow">
     <label>Step<select data-si="${i}" data-sk="type">${Object.entries(TYPES).map(([v,l])=>`<option value="${v}"${v===s.type?' selected':''}>${l}</option>`).join('')}</select></label>
     <label>Pour style<select data-si="${i}" data-sk="style">${Object.entries(STYLES).map(([v,l])=>`<option value="${v}"${v===(s.style||'')?' selected':''}>${l}</option>`).join('')}</select></label>
-    <label>Start<input data-si="${i}" data-sk="at" value="${fmt(s.at)}" inputmode="numeric"></label>
+    <label>Start<input data-si="${i}" data-sk="at" value="${fmt(s.at)}" inputmode="decimal" autocomplete="off"></label>
     <label>Add (g)<input type="number" min="0" data-si="${i}" data-sk="g" value="${s.g||''}" placeholder="0"></label>
     ${s.type==='bloom'?`<label>Pour for (s)<input type="number" min="1" data-si="${i}" data-sk="pourFor" value="${+s.pourFor||10}"></label>`:'<span class="ph"></span>'}
     <label class="note">Note<input data-si="${i}" data-sk="note" value="${esc(s.note)}" placeholder="e.g. slow spiral, centre only"></label>
@@ -508,7 +511,9 @@ function renderSteps(){
   showTotal();
 }
 function showTotal(){const r=draft,t=$('#total');if(!t)return;const used=r.steps.reduce((a,s)=>a+(+s.g||0),0),diff=Math.round(used-(+r.water||0));
-  t.className='total'+(diff?' off':'');t.textContent=`Pours add up to ${nr(used,0)} g of ${nr(r.water,0)} g water`+(diff?` (${diff>0?'+':''}${diff} g)`:' ✓')}
+  t.className='total'+(diff?' off':'');t.textContent=`Pours add up to ${nr(used,0)} g of ${nr(r.water,0)} g water`+(diff?` (${diff>0?'+':''}${diff} g)`:' ✓');
+  const rate=rateOf(r),st=[...r.steps].sort((a,b)=>(+a.at||0)-(+b.at||0)),tight=st.filter((x,i)=>x.type!=='bloom'&&+x.g>0&&st[i+1]&&(+x.g/rate)>(+st[i+1].at-(+x.at)));
+  if(tight.length){t.className='total off';t.textContent+=` · At ${nr(rate)} g/s, ${tight.length>1?'the pours at '+tight.slice(0,-1).map(x=>fmt(x.at)).join(', ')+' and '+fmt(tight[tight.length-1].at):'the pour at '+fmt(tight[0].at)} won't finish before the next step: pour faster or start the next step later.`}}
 
 /* ---------- pour animation (top-down view into the dripper) ---------- */
 const VIEW_EXTRA={bloomwait:'Bloom — wait'};
@@ -533,9 +538,9 @@ function drawPour(now){
   // plain filter ring and flat coffee bed
   g.fillStyle='#f6ece2';g.beginPath();g.arc(cx,cy,Rf,0,7);g.fill();
   let ox=0,oy=0;if(st==='swirl'&&!reduceMotion){ox=Math.cos(t*5)*Rb*.07;oy=Math.sin(t*5)*Rb*.07}
-  let rise=0;if(st==='bloomwait'){const w=Math.min(1,Math.max(0,B.waitP||0));rise=reduceMotion?.6:Math.sin(Math.PI*w)*(.85+.15*Math.sin(t*1.6))}
-  g.fillStyle='#6b4430';g.beginPath();g.arc(cx+ox,cy+oy,Rb*(1+.05*rise),0,7);g.fill();
-  if(rise>0){const d=g.createRadialGradient(cx-Rb*.15,cy-Rb*.15,0,cx,cy,Rb*.85);d.addColorStop(0,`rgba(176,124,84,${.85*rise})`);d.addColorStop(1,'rgba(176,124,84,0)');g.fillStyle=d;g.beginPath();g.arc(cx,cy,Rb*.85,0,7);g.fill()}
+  let rise=0;if(st==='bloomwait'){const w=Math.min(1,Math.max(0,B.waitP||0)),env=.45+.55*Math.sin(Math.PI*w),breath=(1-Math.cos(t*2.6))/2;rise=reduceMotion?.6:env*breath}
+  g.fillStyle='#6b4430';g.beginPath();g.arc(cx+ox,cy+oy,Rb*(1+.1*rise),0,7);g.fill();
+  if(st==='bloomwait'){const dr=Rb*(.55+.35*rise),d=g.createRadialGradient(cx-Rb*.12,cy-Rb*.12,0,cx,cy,dr);d.addColorStop(0,`rgba(196,140,96,${.25+.7*rise})`);d.addColorStop(1,'rgba(196,140,96,0)');g.fillStyle=d;g.beginPath();g.arc(cx,cy,dr,0,7);g.fill()}
   // stir: a simple spoon line
   if(st==='stir'){const x=cx+(reduceMotion?0:Math.sin(t*3))*Rb*.55;g.strokeStyle='#f6ece2';g.lineCap='round';g.lineWidth=W*.04;g.beginPath();g.moveTo(x,cy-Rb*.5);g.lineTo(x,cy+Rb*.5);g.stroke()}
   // water stream with a short tail
@@ -556,7 +561,7 @@ function setPourStep(s,label){
 let B=null;
 function openBrew(r,kk){
   const steps=cum(r,kk),T=totalTime(r);
-  B={r,kk,steps,T,acc:0,t0:0,run:false,idx:-2,iv:null,ac:null,wl:null,vstyle:'',trail:[],ripples:[],level:0,raf:0};
+  B={r,kk,steps,T,pts:curvePts(steps,T,kk),acc:0,t0:0,run:false,idx:-2,iv:null,ac:null,wl:null,vstyle:'',trail:[],ripples:[],level:0,raf:0};
   $('#brew').hidden=false;document.body.style.overflow='hidden';
   const ticks=steps.map(s=>{const a=s.at/T*2*Math.PI-Math.PI/2;return`<line x1="${50+40*Math.cos(a)}" y1="${50+40*Math.sin(a)}" x2="${50+47*Math.cos(a)}" y2="${50+47*Math.sin(a)}" stroke="#f6ece2" stroke-width="1.2" opacity=".8"/>`}).join('');
   $('#brew').innerHTML=`<div class="bhead"><b>${esc(r.name)}</b><span>${nr(r.dose*kk)} g · ${nr(r.water*kk,0)} g${r.temp?' · '+nr(r.temp,0)+'°C':''}</span>
@@ -618,8 +623,10 @@ function tick(){
   if(done){ins.textContent='Done — enjoy your cup';sub.textContent=`Target finish ${fmt(B.T)}`;if(B.run){B.acc=e;B.run=false;clearInterval(B.iv);$('#brew').classList.remove('running');$('#bGo').textContent='Start';B.acc=0;B.idx=-2}return}
   if(i<0){ins.innerHTML='Get ready';sub.textContent=nx?`${TYPES[nx.type]} in ${fmt(nx.at-e)}`:''}
   else if(waiting){ins.innerHTML='Bloom · <b>wait</b>';sub.textContent=nx0?`Next: ${TYPES[nx0.type]}${nx0.g?' to '+nr(nx0.c,0)+' g':''} in ${fmt(nx0.at-e)}`:`Finish at ${fmt(B.T)}`}
-  else if(bloom){ins.innerHTML=`Bloom to <b>${nr(cur0.c,0)} g</b>`;sub.textContent=`Pour for ${fmt(Math.ceil(pd-(e-cur0.at)))} more, then wait`}
+  else if(bloom){ins.innerHTML=`Bloom to <b>${nr(cur0.c,0)} g</b>`;sub.innerHTML=`Scale now: <b>${nr(valAt(B.pts,e),0)} g</b> · pour ${fmt(Math.ceil(pd-(e-cur0.at)))} more, then wait`}
   else{const s=st[i];ins.innerHTML=s.g?`${TYPES[s.type]} to <b>${nr(s.c,0)} g</b>`:`${TYPES[s.type]||'Wait'} · hold at ${nr(s.c,0)} g`;
+    const pdur=s.g?Math.min(pourDur(s,B.kk),(nx?nx.at:B.T)-s.at-1):0;
+    if(s.g&&e-s.at<pdur){sub.innerHTML=`Scale now: <b>${nr(valAt(B.pts,e),0)} g</b> · pour ${fmt(Math.ceil(pdur-(e-s.at)))} more`}else
     sub.textContent=(s.g?`+${nr(s.g,0)} g`:(s.note||''))+(nx?` · next: ${TYPES[nx.type]}${nx.g?' to '+nr(nx.c,0)+' g':''} in ${fmt(nx.at-e)}`:` · finish at ${fmt(B.T)}`)}
 }
 function closeBrew(){if(B){clearInterval(B.iv);try{B.ro&&B.ro.disconnect()}catch(e){}cancelAnimationFrame(B.raf);try{B.wl&&B.wl.release()}catch(e){}try{B.ac&&B.ac.close()}catch(e){}}B=null;$('#brew').hidden=true;$('#brew').innerHTML='';document.body.style.overflow=''}
