@@ -83,7 +83,7 @@ fieldset{border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 0
 legend{font-weight:700;padding:0 6px}
 .f{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px}
 .f .wide{grid-column:1/-1}
-.srow{display:grid;grid-template-columns:120px 80px 90px minmax(0,1fr) auto;gap:8px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}
+.srow{display:grid;grid-template-columns:110px 150px 76px 84px minmax(0,1fr) auto;gap:8px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}
 .srow .acts{display:flex;gap:4px}.srow .acts button{min-width:44px;padding:0}
 .total{font-size:14px;font-weight:600;margin:10px 0}
 .total.off{color:var(--acc)}
@@ -100,6 +100,10 @@ legend{font-weight:700;padding:0 6px}
 .ring .ins{font-size:clamp(18px,2.4vw,24px);font-weight:700;margin-top:6px}
 .ring .ins b{color:#ff8a76}
 .ring .sub{font-size:14px;opacity:.75}
+.pourv{display:grid;grid-template-columns:minmax(130px,230px) minmax(0,1fr);gap:18px;align-items:center;background:#ffffff12;border-radius:18px;padding:12px;margin-bottom:14px}
+.pourv canvas{width:100%;aspect-ratio:1;display:block}
+.pourv b{display:block;font:800 24px/1.1 var(--num);color:#ff8a76}
+.pourv span{display:block;font-size:15px;opacity:.85;margin-top:4px}
 .blist{list-style:none;margin:0;padding:0}
 .blist li{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:10px;padding:10px 12px;border-radius:10px;opacity:.6}
 .blist li.now{background:#ffffff18;opacity:1;box-shadow:inset 4px 0 0 #ff8a76}
@@ -118,7 +122,8 @@ legend{font-weight:700;padding:0 6px}
 #toast button{min-height:34px;background:transparent;color:inherit;border-color:currentColor}
 .sample{font-size:13px;color:var(--mute);margin-top:8px}
 @media(max-width:899px){.shell{display:block}aside{border:0;min-height:0}body.focus aside{display:none}body.has:not(.focus) #main{display:none}body:not(.has) #list{display:none}.back{display:inline-flex}}
-@media(max-width:700px){.bwrap{grid-template-columns:minmax(0,1fr)}.srow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.srow .note{grid-column:1/-1}.srow .acts{grid-column:1/-1;justify-content:flex-end}}
+@media(max-width:1150px){.srow{grid-template-columns:repeat(4,minmax(0,1fr))}.srow .note{grid-column:1/-1}.srow .acts{grid-column:1/-1;justify-content:flex-end}}
+@media(max-width:700px){.bwrap{grid-template-columns:minmax(0,1fr)}.ring{max-width:250px}.bwrap{gap:16px;padding-top:10px}.bctl{margin-top:10px}.srow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.srow .note{grid-column:1/-1}.srow .acts{grid-column:1/-1;justify-content:flex-end}}
 @media(max-width:600px){table{font-size:14px}.stack thead{display:none}.stack tr{display:grid;padding-block:8px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:7em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:6.5em;margin-inline-start:-7em;color:var(--mute);font-size:13px}.stack td:empty{display:none}}
 @media(prefers-reduced-motion:no-preference){.ring .arc{transition:stroke-dashoffset .25s linear}}
 </style>
@@ -157,7 +162,7 @@ const newId=()=>'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,6
 const DEFAULT_METHODS=['V60','Kalita Wave','Chemex','Origami','Orea','April','Melitta'];
 const TYPES={bloom:'Bloom',pour:'Pour',swirl:'Swirl',stir:'Stir',wait:'Wait',drawdown:'Drawdown'};
 const LS='pournotes.v1';
-let recipes=new Map(),customMethods=[],mode='local',q='',mf='All',k=1,kFor=null,draft=null,mainKey='',roChart=null,toastT=null;
+let recipes=new Map(),customMethods=[],mode='loading',col=null,q='',mf='All',k=1,kFor=null,draft=null,mainKey='',roChart=null,toastT=null;
 
 /* ---------- storage: this browser + GitHub Gist sync ---------- */
 const LSS='pournotes.sync',FILE='pour-notes.json',API='https://api.github.com';
@@ -167,10 +172,22 @@ function saveSync(){try{localStorage.setItem(LSS,JSON.stringify(sync))}catch(e){
 function lsLoad(){try{const d=JSON.parse(localStorage.getItem(LS)||'{}');(d.recipes||[]).forEach(r=>recipes.set(r.id,r));customMethods=d.methods||[];deleted=d.deleted||{}}catch(e){}}
 function lsWrite(){try{localStorage.setItem(LS,JSON.stringify(snapshot()))}catch(e){toast('Could not save in this browser')}}
 function lsSave(){lsWrite();scheduleSync(3000)}
-function ready(){return true}
-async function persist(r){r={...r,mtime:Date.now()};recipes.set(r.id,r);delete deleted[r.id];render();lsSave();return true}
-async function removeR(id){recipes.delete(id);deleted[id]=Date.now();render();lsSave()}
-async function saveMethods(){lsSave()}
+const pending={};
+function queue(id,fn){const p=(pending[id]||Promise.resolve()).then(fn,fn);pending[id]=p.catch(()=>{});return p}
+function ready(){if(mode==='loading'){toast('Still loading your recipes — try again in a moment');return false}return true}
+async function persist(r){
+  if(!ready())return false;
+  r={...r,mtime:Date.now()};recipes.set(r.id,r);delete deleted[r.id];render();
+  if(mode==='db'){try{await queue(r.id,()=>col.doc(r.id).set(r))}catch(e){toast(e&&e.code==='quota_exceeded'?'Storage is full — delete some recipes first':'Could not save — please try again');return false}}
+  else lsSave();
+  return true}
+async function removeR(id){
+  if(!ready())return;
+  recipes.delete(id);render();
+  if(mode==='db'){try{await queue(id,()=>col.doc(id).delete())}catch(e){toast('Could not delete — please try again')}}
+  else{deleted[id]=Date.now();lsSave()}}
+async function saveMethods(){
+  if(mode==='db'){try{await queue('prefs',()=>col.doc('prefs').set({methods:customMethods}))}catch(e){toast('Could not save the method')}}else lsSave()}
 function snapshot(){return{app:'pour-notes',version:2,methods:customMethods,recipes:[...recipes.values()],deleted}}
 function sig(s){return JSON.stringify([[...(s.methods||[])].sort(),(s.recipes||[]).map(r=>r.id+':'+(r.mtime||0)).sort(),Object.keys(s.deleted||{}).sort()])}
 function setSync(t){$('#store').textContent=t}
@@ -194,8 +211,9 @@ function merge(remote){
   for(const m of remote.methods||[])if(typeof m==='string'&&!customMethods.includes(m)){customMethods=[...customMethods,m];changed=true}
   const old=Date.now()-180*864e5;for(const id in deleted)if(deleted[id]<old)delete deleted[id];
   return changed}
-function scheduleSync(ms){if(!sync.token)return;clearTimeout(syncT);syncT=setTimeout(doSync,ms)}
+function scheduleSync(ms){if(!sync.token||mode!=='local'||onClaude)return;clearTimeout(syncT);syncT=setTimeout(doSync,ms)}
 async function doSync(){
+  if(mode!=='local'||onClaude)return;
   if(!sync.token)return syncIdle();
   if(busy){again=true;return}
   busy=true;setSync('Syncing…');
@@ -223,18 +241,41 @@ function openSync(){
       if(t)sync.token=t;if(g!==(sync.gistId||'')){sync.gistId=g;sync.last=0}sync.err='';saveSync();m.querySelector('#sTok').value='';doSync()};
     const off=m.querySelector('#sOff');if(off)off.onclick=()=>{sync={};saveSync();closeModal();syncIdle();toast('Sync turned off on this device — your recipes stay here')}});
 }
-function init(){
-  lsLoad();syncIdle();mainKey='';render();doSync();
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleSync(300)});
-  window.addEventListener('online',()=>scheduleSync(300));
-  setInterval(()=>{if(document.visibilityState==='visible')scheduleSync(0)},180000);
+const onClaude=!!(window.claude&&window.claude.use);
+function useLocal(){
+  mode='local';lsLoad();mainKey='';
+  if(onClaude){setSync('Saved in this browser only — use Backup to keep a copy')}
+  else{syncIdle();doSync();
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')scheduleSync(300)});
+    window.addEventListener('online',()=>scheduleSync(300));
+    setInterval(()=>{if(document.visibilityState==='visible')scheduleSync(0)},180000)}
+  render()}
+async function init(){
+  render();
+  if(!onClaude){useLocal();return}
+  $('#syncBtn').style.display='none';setSync('Connecting…');
+  const timer=setTimeout(()=>{if(mode==='loading')setSync('Still connecting — your recipes may be out of date')},10000);
+  let db=null,id=null;
+  try{db=await window.claude.use('db');const u=await window.claude.use('user');id=u?await u.id():null}catch(e){}
+  if(!db||!id){clearTimeout(timer);useLocal();return}
+  col=db.collection('data/users/'+id);
+  col.onSnapshot(snap=>{
+    mode='db';const m=new Map();let cm=[];
+    snap.docs.forEach(d=>{const v=d.data();if(!v)return;if(d.id==='prefs')cm=Array.isArray(v.methods)?[...v.methods]:[];else m.set(d.id,{...v,id:d.id})});
+    recipes=m;customMethods=cm;
+    if(!snap.metadata.fromCache){clearTimeout(timer);setSync('Saved to your Claude account')}
+    if(!mainKey.startsWith('edit'))mainKey='';render();
+  },()=>{clearTimeout(timer);setSync('Your saved recipes can’t be reached right now');if(mode==='loading'){mode='local';render()}});
 }
 
 /* ---------- helpers ---------- */
 function allMethods(extra){const s=[...DEFAULT_METHODS,...customMethods];if(extra&&!s.includes(extra))s.push(extra);return s}
 function cum(r,kk=1){let c=0;return(r.steps||[]).map(s=>{const g=(+s.g||0)*kk;c+=g;return{...s,g,c}})}
 function totalTime(r){const st=r.steps||[];const last=st.length?Math.max(...st.map(s=>+s.at||0)):0;return Math.max(+r.time||0,last+20)}
-function route(){const h=decodeURIComponent(location.hash.slice(1));if(h==='new')return{v:'edit',id:null};const m=h.match(/^(recipe|edit)-([A-Za-z0-9_-]+)$/);if(m)return{v:m[1]==='recipe'?'detail':'edit',id:m[2]};return{v:'home'}}
+let curHash=location.hash.slice(1);
+function nav(h){h=String(h||'').replace(/^#/,'');curHash=h;mainKey='';try{if(location.hash.slice(1)!==h)location.hash=h}catch(e){}render();try{window.scrollTo(0,0)}catch(e){}}
+window.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a)return;e.preventDefault();e.stopPropagation();nav(a.getAttribute('href'))},true);
+function route(){let h='';try{h=decodeURIComponent(curHash)}catch(e){h=curHash}if(h==='new')return{v:'edit',id:null};const m=h.match(/^(recipe|edit)-([A-Za-z0-9_-]+)$/);if(m)return{v:m[1]==='recipe'?'detail':'edit',id:m[2]};return{v:'home'}}
 function sorted(){return[...recipes.values()].sort((a,b)=>(b.fav?1:0)-(a.fav?1:0)||(b.updatedAt||0)-(a.updatedAt||0))}
 function matches(r){if(mf!=='All'&&r.method!==mf)return false;if(!q)return true;const b=r.bean||{};return[r.name,r.method,b.name,b.roaster,b.origin,b.process,b.variety,r.notes].join(' ').toLowerCase().includes(q)}
 function toast(msg,action,fn){const t=$('#toast');clearTimeout(toastT);t.innerHTML=`<span>${esc(msg)}</span>${action?`<button type="button" id="tAct">${esc(action)}</button>`:''}`;t.hidden=false;if(action)$('#tAct').onclick=()=>{t.hidden=true;fn()};toastT=setTimeout(()=>t.hidden=true,6000)}
@@ -267,7 +308,7 @@ function render(){
   if(rt.v==='edit'){
     const key='edit:'+(rt.id||'new');
     if(mainKey===key&&draft)return;
-    if(rt.id&&!recipes.has(rt.id)){if(mode==='loading'){$('#main').innerHTML='<p class="muted">Loading…</p>';return}location.hash='';return}
+    if(rt.id&&!recipes.has(rt.id)){if(mode==='loading'){$('#main').innerHTML='<p class="muted">Loading…</p>';return}nav('');return}
     draft=rt.id?JSON.parse(JSON.stringify(recipes.get(rt.id))):blank();
     mainKey=key;editor();return}
   draft=null;
@@ -323,7 +364,7 @@ function detail(r){
   <div class="card"><h2>Pour schedule${k!==1?` <span class="muted">· scaled ${nr(k,2)}×</span>`:''}</h2>
     <div class="fig" id="fig"><svg id="chart" role="img" aria-label="Water poured over time"></svg></div>
     ${steps.length?`<table class="stack"><thead><tr><th>Time</th><th>Step</th><th class="n">Add</th><th class="n">Scale reads</th><th>Note</th></tr></thead><tbody>
-    ${steps.map(s=>`<tr><td class="n" style="text-align:left">${fmt(s.at)}</td><td><b>${TYPES[s.type]||'Pour'}</b></td><td class="n">${s.g?'+'+nr(s.g,0)+' g':''}</td><td class="n">${nr(s.c,0)} g</td><td>${esc(s.note||'')}</td></tr>`).join('')}
+    ${steps.map(s=>`<tr><td class="n" style="text-align:left">${fmt(s.at)}</td><td><b>${TYPES[s.type]||'Pour'}</b>${s.style?`<br><small class="muted">${STYLES[s.style]}</small>`:''}</td><td class="n">${s.g?'+'+nr(s.g,0)+' g':''}</td><td class="n">${nr(s.c,0)} g</td><td>${esc(s.note||'')}</td></tr>`).join('')}
     </tbody></table>`:'<p class="muted">No steps yet — edit the recipe to add your pours.</p>'}
   </div>
   <div class="grid2">
@@ -338,8 +379,8 @@ function detail(r){
   $('#main').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>setK(b.dataset.k==='1'?1:k*+b.dataset.k));
   $('#brewBtn').onclick=()=>openBrew(r,k);
   $('#favBtn').onclick=()=>persist({...r,fav:!r.fav});
-  $('#dupBtn').onclick=async()=>{const c={...JSON.parse(JSON.stringify(r)),id:newId(),name:r.name+' (copy)',fav:false,sample:false,createdAt:Date.now(),updatedAt:Date.now()};if(await persist(c))location.hash='edit-'+c.id};
-  $('#delBtn').onclick=()=>modal(`<h2>Delete “${esc(r.name)}”?</h2><p class="muted">You can undo for a few seconds afterwards.</p><div class="bar"><button type="button" class="pri" id="cDel">Delete</button><button type="button" data-close>Cancel</button></div>`,m=>m.querySelector('#cDel').onclick=()=>{closeModal();const keep=JSON.parse(JSON.stringify(r));removeR(r.id);location.hash='';toast('Recipe deleted','Undo',()=>persist(keep))});
+  $('#dupBtn').onclick=async()=>{const c={...JSON.parse(JSON.stringify(r)),id:newId(),name:r.name+' (copy)',fav:false,sample:false,createdAt:Date.now(),updatedAt:Date.now()};if(await persist(c))nav('edit-'+c.id)};
+  $('#delBtn').onclick=()=>modal(`<h2>Delete “${esc(r.name)}”?</h2><p class="muted">You can undo for a few seconds afterwards.</p><div class="bar"><button type="button" class="pri" id="cDel">Delete</button><button type="button" data-close>Cancel</button></div>`,m=>m.querySelector('#cDel').onclick=()=>{closeModal();const keep=JSON.parse(JSON.stringify(r));removeR(r.id);nav('');toast('Recipe deleted','Undo',()=>persist(keep))});
   drawChart(r);
 }
 function drawChart(r){
@@ -422,14 +463,15 @@ function editor(){
     if(!String(r.name).trim()){toast('Give the recipe a name');form.querySelector('[data-f=name]').focus();return}
     if(!(r.dose>0)||!(r.water>0)){toast('Coffee and water need to be above 0 g');return}
     const now=Date.now();const out={...r,name:String(r.name).trim(),dose:+r.dose,water:+r.water,temp:r.temp===''?'':+r.temp,
-      steps:r.steps.map(s=>({type:s.type,at:+s.at||0,g:+s.g||0,note:s.note||''})).sort((a,b)=>a.at-b.at),
+      steps:r.steps.map(s=>({type:s.type,style:s.style||'',at:+s.at||0,g:+s.g||0,note:s.note||''})).sort((a,b)=>a.at-b.at),
       id:r.id||newId(),createdAt:r.createdAt||now,updatedAt:now,sample:false};
-    if(await persist(out)){draft=null;mainKey='';location.hash='recipe-'+out.id}});
+    if(await persist(out)){draft=null;nav('recipe-'+out.id)}});
 }
 function renderSteps(){
   const r=draft;
   $('#steps').innerHTML=r.steps.map((s,i)=>`<div class="srow">
     <label>Step<select data-si="${i}" data-sk="type">${Object.entries(TYPES).map(([v,l])=>`<option value="${v}"${v===s.type?' selected':''}>${l}</option>`).join('')}</select></label>
+    <label>Pour style<select data-si="${i}" data-sk="style">${Object.entries(STYLES).map(([v,l])=>`<option value="${v}"${v===(s.style||'')?' selected':''}>${l}</option>`).join('')}</select></label>
     <label>Start<input data-si="${i}" data-sk="at" value="${fmt(s.at)}" inputmode="numeric"></label>
     <label>Add (g)<input type="number" min="0" data-si="${i}" data-sk="g" value="${s.g||''}" placeholder="0"></label>
     <label class="note">Note<input data-si="${i}" data-sk="note" value="${esc(s.note)}" placeholder="e.g. slow spiral, centre only"></label>
@@ -441,11 +483,50 @@ function renderSteps(){
 function showTotal(){const r=draft,t=$('#total');if(!t)return;const used=r.steps.reduce((a,s)=>a+(+s.g||0),0),diff=Math.round(used-(+r.water||0));
   t.className='total'+(diff?' off':'');t.textContent=`Pours add up to ${nr(used,0)} g of ${nr(r.water,0)} g water`+(diff?` (${diff>0?'+':''}${diff} g)`:' ✓')}
 
+/* ---------- pour animation (top-down view into the dripper) ---------- */
+const STYLES={'':'Default',centre:'Centre pour',spiral:'Spiral',circles:'Circles',pulse:'Pulse pours',swirl:'Swirl the dripper',stir:'Stir',rest:'No pouring'};
+const DEF={bloom:'spiral',pour:'spiral',swirl:'swirl',stir:'stir',wait:'rest',drawdown:'rest'};
+const HOW={centre:'Keep a slow, steady stream in the centre of the bed.',spiral:'Start in the centre, spiral out, then spiral back in. Stay off the paper.',circles:'Pour small, even circles about halfway out from the centre.',pulse:'Pour short bursts in the centre, with a pause between each.',swirl:'Lift the dripper and swirl it gently to flatten the bed.',stir:'Stir gently back and forth across the bed.',rest:'Hands off. Let the water drain through.'};
+const styleOf=s=>(s&&(s.style||DEF[s.type]))||'spiral';
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function streamAt(st,t){
+  const TAU=Math.PI*2;
+  if(st==='centre')return{x:.05*Math.cos(t*3),y:.05*Math.sin(t*3.7),on:true};
+  if(st==='spiral'){const u=(t%6)/6,r=.72*(u<.5?u*2:(1-u)*2),a=t*TAU*.9;return{x:r*Math.cos(a),y:r*Math.sin(a),on:true}}
+  if(st==='circles'){const a=t*TAU*.8;return{x:.4*Math.cos(a),y:.4*Math.sin(a),on:true}}
+  if(st==='pulse')return{x:.04*Math.cos(t*3),y:.04*Math.sin(t*3),on:(t%2.4)<1.4};
+  return{x:0,y:0,on:false}}
+function drawPour(now){
+  const c=$('#pourC');if(!c||!B)return;
+  const dpr=window.devicePixelRatio||1,W=c.clientWidth;if(!W)return;
+  if(c.width!==Math.round(W*dpr)){c.width=c.height=Math.round(W*dpr)}
+  const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,W);
+  const st=B.vstyle,t=reduceMotion?1.2:now/1000,cx=W/2,cy=W/2,Rf=W*.46,Rb=W*.38;
+  // plain filter ring and flat coffee bed
+  g.fillStyle='#f6ece2';g.beginPath();g.arc(cx,cy,Rf,0,7);g.fill();
+  let ox=0,oy=0;if(st==='swirl'&&!reduceMotion){ox=Math.cos(t*5)*Rb*.07;oy=Math.sin(t*5)*Rb*.07}
+  g.fillStyle='#6b4430';g.beginPath();g.arc(cx+ox,cy+oy,Rb,0,7);g.fill();
+  // stir: a simple spoon line
+  if(st==='stir'){const x=cx+(reduceMotion?0:Math.sin(t*3))*Rb*.55;g.strokeStyle='#f6ece2';g.lineCap='round';g.lineWidth=W*.04;g.beginPath();g.moveTo(x,cy-Rb*.5);g.lineTo(x,cy+Rb*.5);g.stroke()}
+  // water stream with a short tail
+  const p=streamAt(st,t),sx=cx+p.x*Rb,sy=cy+p.y*Rb;
+  if(p.on&&!reduceMotion)B.trail.push([sx,sy,now]);
+  B.trail=B.trail.filter(q=>now-q[2]<450);
+  g.lineCap='round';g.strokeStyle='rgba(255,255,255,.45)';g.lineWidth=W*.025;
+  g.lineJoin='round';if(B.trail.length>1){g.beginPath();B.trail.forEach((q,i)=>i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1]));g.stroke()}
+  if(p.on){g.fillStyle='#fff';g.beginPath();g.arc(sx,sy,W*.035,0,7);g.fill()}
+}
+function animPour(now){if(!B)return;drawPour(now);if(!reduceMotion)B.raf=requestAnimationFrame(animPour)}
+function setPourStep(s,label){
+  const st=s?styleOf(s):'rest';
+  if(st!==B.vstyle){B.vstyle=st;B.trail=[];B.ripples=[];if(reduceMotion)drawPour(performance.now())}
+  $('#pStyle').textContent=(label?label+': ':'')+STYLES[st];$('#pHow').textContent=HOW[st]}
+
 /* ---------- brew mode ---------- */
 let B=null;
 function openBrew(r,kk){
   const steps=cum(r,kk),T=totalTime(r);
-  B={r,steps,T,acc:0,t0:0,run:false,idx:-2,iv:null,ac:null,wl:null};
+  B={r,steps,T,acc:0,t0:0,run:false,idx:-2,iv:null,ac:null,wl:null,vstyle:'',trail:[],ripples:[],level:0,raf:0};
   $('#brew').hidden=false;document.body.style.overflow='hidden';
   const ticks=steps.map(s=>{const a=s.at/T*2*Math.PI-Math.PI/2;return`<line x1="${50+40*Math.cos(a)}" y1="${50+40*Math.sin(a)}" x2="${50+47*Math.cos(a)}" y2="${50+47*Math.sin(a)}" stroke="#f6ece2" stroke-width="1.2" opacity=".8"/>`}).join('');
   $('#brew').innerHTML=`<div class="bhead"><b>${esc(r.name)}</b><span>${nr(r.dose*kk)} g · ${nr(r.water*kk,0)} g${r.temp?' · '+nr(r.temp,0)+'°C':''}</span><button type="button" id="bClose">Close</button></div>
@@ -453,7 +534,9 @@ function openBrew(r,kk){
     <circle class="arc" id="arc" cx="50" cy="50" r="43.5" fill="none" stroke="#ff8a76" stroke-width="5" stroke-linecap="round" stroke-dasharray="273.3" stroke-dashoffset="273.3" transform="rotate(-90 50 50)"/>${ticks}</svg>
     <div class="c"><div class="el" id="bEl">0:00</div><div class="ins" id="bIns">Ready</div><div class="sub" id="bSub">Tare your scale, then press Start</div></div></div>
     <div class="bctl" style="justify-content:center"><button type="button" class="pri" id="bGo">Start</button><button type="button" id="bReset">Reset</button></div></div>
-    <ol class="blist" id="bList">${steps.map(s=>`<li><span>${fmt(s.at)}</span><span><b>${TYPES[s.type]||'Pour'}</b>${s.note?`<br><small>${esc(s.note)}</small>`:''}</span><span class="n">${s.g?`to ${nr(s.c,0)} g`:''}</span></li>`).join('')}<li><span>${fmt(T)}</span><span><b>Finish</b></span><span class="n"></span></li></ol></div>`;
+    <div><div class="pourv"><canvas id="pourC" role="img" aria-label="How to pour this step, seen from above"></canvas><div><b id="pStyle"></b><span id="pHow"></span></div></div>
+    <ol class="blist" id="bList">${steps.map(s=>`<li><span>${fmt(s.at)}</span><span><b>${TYPES[s.type]||'Pour'}</b> <small style="opacity:.7">· ${STYLES[styleOf(s)]}</small>${s.note?`<br><small>${esc(s.note)}</small>`:''}</span><span class="n">${s.g?`to ${nr(s.c,0)} g`:''}</span></li>`).join('')}<li><span>${fmt(T)}</span><span><b>Finish</b></span><span class="n"></span></li></ol></div></div>`;
+  setPourStep(steps[0],'First');B.raf=requestAnimationFrame(animPour);
   $('#bClose').onclick=closeBrew;
   $('#bGo').onclick=()=>{
     if(!B.ac){try{B.ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
@@ -472,24 +555,27 @@ function tick(){
     [...$('#bList').children].forEach((li,j)=>{li.className=j===idx?'now':j<idx?'done':''});}
   $('#bEl').textContent=fmt(Math.floor(e));
   $('#arc').setAttribute('stroke-dashoffset',273.3*(1-Math.min(1,e/B.T)));
+  const cur=st[i];
+  if(done)setPourStep(null,'');else if(i<0)setPourStep(st[0],'First');else setPourStep(cur,'Now');
+  B.level=done?0:cur?(cur.c-cur.g+cur.g*Math.min(1,(e-cur.at)/Math.max(3,cur.g/6)))/Math.max(1,st.length?st[st.length-1].c:1):0;
   const ins=$('#bIns'),sub=$('#bSub'),nx=st[i+1];
   if(done){ins.textContent='Done — enjoy your cup';sub.textContent=`Target finish ${fmt(B.T)}`;if(B.run){B.acc=e;B.run=false;clearInterval(B.iv);$('#bGo').textContent='Start';B.acc=0;B.idx=-2}return}
   if(i<0){ins.innerHTML='Get ready';sub.textContent=nx?`${TYPES[nx.type]} in ${fmt(nx.at-e)}`:''}
   else{const s=st[i];ins.innerHTML=s.g?`${TYPES[s.type]} to <b>${nr(s.c,0)} g</b>`:`${TYPES[s.type]||'Wait'} · hold at ${nr(s.c,0)} g`;
     sub.textContent=(s.g?`+${nr(s.g,0)} g`:(s.note||''))+(nx?` · next: ${TYPES[nx.type]}${nx.g?' to '+nr(nx.c,0)+' g':''} in ${fmt(nx.at-e)}`:` · finish at ${fmt(B.T)}`)}
 }
-function closeBrew(){if(B){clearInterval(B.iv);try{B.wl&&B.wl.release()}catch(e){}try{B.ac&&B.ac.close()}catch(e){}}B=null;$('#brew').hidden=true;$('#brew').innerHTML='';document.body.style.overflow=''}
+function closeBrew(){if(B){clearInterval(B.iv);cancelAnimationFrame(B.raf);try{B.wl&&B.wl.release()}catch(e){}try{B.ac&&B.ac.close()}catch(e){}}B=null;$('#brew').hidden=true;$('#brew').innerHTML='';document.body.style.overflow=''}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#modal').hidden)closeModal();else if(B)closeBrew()}else if(e.key===' '&&B&&e.target===document.body){e.preventDefault();$('#bGo').click()}});
 
 /* ---------- backup ---------- */
 $('#backupBtn').onclick=()=>{
   const json=JSON.stringify({app:'pour-notes',version:1,methods:customMethods,recipes:sorted()},null,1);
   modal(`<h2>Backup &amp; import</h2><p class="muted" style="font-size:14px">Copy this text and keep it somewhere safe. Paste it below later to restore.</p>
-  <textarea id="bkOut" readonly aria-label="Backup text">${esc(json)}</textarea><div class="bar"><button type="button" class="pri" id="bkCopy">Copy backup</button><button type="button" id="bkDl">Download .json</button></div>
+  <textarea id="bkOut" readonly aria-label="Backup text">${esc(json)}</textarea><div class="bar"><button type="button" class="pri" id="bkCopy">Copy backup</button>${onClaude?'':'<button type="button" id="bkDl">Download .json</button>'}</div>
   <label>Import recipes<textarea id="bkIn" placeholder="Paste backup text here"></textarea></label>
   <div class="bar"><button type="button" id="bkImp">Import</button><button type="button" data-close>Close</button></div>`,m=>{
     m.querySelector('#bkCopy').onclick=async()=>{const t=m.querySelector('#bkOut');try{await navigator.clipboard.writeText(t.value);toast('Backup copied')}catch(e){t.focus();t.select();toast('Select all and copy the text')}};
-    m.querySelector('#bkDl').onclick=()=>{try{const u=URL.createObjectURL(new Blob([json],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='brewing-time-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}catch(e){toast('Download not available — use Copy instead')}};
+    if(m.querySelector('#bkDl'))m.querySelector('#bkDl').onclick=()=>{try{const u=URL.createObjectURL(new Blob([json],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='brewing-time-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}catch(e){toast('Download not available — use Copy instead')}};
     m.querySelector('#bkImp').onclick=async()=>{let d;try{d=JSON.parse(m.querySelector('#bkIn').value)}catch(e){toast('That text isn’t a valid backup');return}
       const list=Array.isArray(d)?d:(d.recipes||[]);let n=0;
       if(Array.isArray(d.methods)){const add=d.methods.filter(x=>typeof x==='string'&&!allMethods().includes(x));if(add.length){customMethods=[...customMethods,...add];await saveMethods()}}
@@ -504,11 +590,11 @@ async function addSamples(){
   const list=[
     mk({name:'Bright single cup',method:'V60',dose:15,water:250,temp:94,grind:'Medium-fine',grindSetting:'',filter:'Tabbed paper, rinsed',time:180,
       bean:{name:'Washed Ethiopian',origin:'Ethiopia',process:'Washed',roast:'Light'},
-      steps:[{type:'bloom',at:0,g:45,note:'Swirl to wet all grounds'},{type:'pour',at:45,g:105,note:'Steady spiral'},{type:'pour',at:75,g:100,note:'Centre pour'},{type:'swirl',at:105,g:0,note:'Gentle swirl to flatten the bed'},{type:'drawdown',at:110,g:0,note:'Aim to finish around 3:00'}],
+      steps:[{type:'bloom',at:0,g:45,style:'spiral',note:'Swirl to wet all grounds'},{type:'pour',at:45,g:105,style:'spiral',note:'Steady spiral'},{type:'pour',at:75,g:100,style:'centre',note:'Centre pour'},{type:'swirl',at:105,g:0,note:'Gentle swirl to flatten the bed'},{type:'drawdown',at:110,g:0,note:'Aim to finish around 3:00'}],
       notes:'Tastes sour or thin → grind finer. Bitter or drying → grind coarser.'},0),
     mk({name:'Kalita three pours',method:'Kalita Wave',dose:20,water:320,temp:93,grind:'Medium',time:210,
       bean:{name:'Colombian Caturra',origin:'Colombia',variety:'Caturra',process:'Washed',roast:'Medium-light'},
-      steps:[{type:'bloom',at:0,g:50,note:''},{type:'pour',at:40,g:90,note:''},{type:'pour',at:70,g:90,note:''},{type:'pour',at:100,g:90,note:''},{type:'drawdown',at:130,g:0,note:''}],notes:''},1),
+      steps:[{type:'bloom',at:0,g:50,note:''},{type:'pour',at:40,g:90,style:'circles',note:''},{type:'pour',at:70,g:90,style:'circles',note:''},{type:'pour',at:100,g:90,style:'pulse',note:''},{type:'drawdown',at:130,g:0,note:''}],notes:''},1),
     mk({name:'Chemex for two',method:'Chemex',dose:30,water:500,temp:95,grind:'Medium-coarse',time:270,
       bean:{name:'Natural Brazil',origin:'Brazil',process:'Natural',roast:'Medium'},
       steps:[{type:'bloom',at:0,g:60,note:'Stir gently'},{type:'pour',at:45,g:190,note:''},{type:'pour',at:90,g:150,note:''},{type:'pour',at:135,g:100,note:''},{type:'drawdown',at:170,g:0,note:''}],notes:''},2)];
@@ -516,7 +602,7 @@ async function addSamples(){
 }
 
 $('#syncBtn').onclick=openSync;
-window.addEventListener('hashchange',()=>{mainKey='';render()});
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);if(h===curHash)return;curHash=h;mainKey='';render()});
 let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(route().v==='home'){mainKey='';render()}},200)});
 init();
 }
