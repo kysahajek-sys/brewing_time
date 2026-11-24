@@ -7,11 +7,18 @@ It is a single `index.html` with no build step and no server.
 ## 1. Host it on GitHub Pages
 
 1. Create a new repository on GitHub, for example `brewing-time`. It can be public or private. Pages on a private repo needs a paid plan.
-2. Upload `index.html` (and this README) to the repository's root. Use **Add file → Upload files**, then commit.
+2. Upload all the files to the repository's root: `index.html`, `manifest.webmanifest`, `sw.js`, `icon.svg`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `favicon-32.png` (and this README). Use **Add file → Upload files**, then commit.
 3. Go to **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, pick `main` and `/ (root)`, then save.
 4. After a minute your app is live at `https://<your-username>.github.io/brewing-time/`.
 
-Tip: on your phone, open the address and use **Add to Home Screen** so it opens like an app.
+### Install it as an app
+
+The app has its own icon and opens in its own window, even offline.
+
+- **Android / Chrome / Edge:** open the address and choose **Install app** (in the browser menu or the install icon in the address bar).
+- **iPhone / iPad:** open it in Safari, tap **Share → Add to Home Screen**.
+
+When you upload a new `index.html`, the installed app picks it up the next time it opens while online.
 
 ## 2. Turn on sync between devices
 

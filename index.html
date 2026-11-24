@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#3a2215">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Brewing Time">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="Filter coffee recipe book with a guided brew timer">
 <title>Brewing Time</title>
@@ -83,7 +88,7 @@ fieldset{border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 0
 legend{font-weight:700;padding:0 6px}
 .f{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px}
 .f .wide{grid-column:1/-1}
-.srow{display:grid;grid-template-columns:110px 150px 76px 84px minmax(0,1fr) auto;gap:8px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}
+.srow{display:grid;grid-template-columns:110px 150px 76px 84px 84px minmax(0,1fr) auto;gap:8px;align-items:end;padding:10px 0;border-bottom:1px dashed var(--line)}
 .srow .acts{display:flex;gap:4px}.srow .acts button{min-width:44px;padding:0}
 .total{font-size:14px;font-weight:600;margin:10px 0}
 .total.off{color:var(--acc)}
@@ -106,6 +111,9 @@ legend{font-weight:700;padding:0 6px}
 .pourv span{display:block;font-size:15px;opacity:.85;margin-top:4px}
 .blist{list-style:none;margin:0;padding:0}
 .blist li{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:10px;padding:10px 12px;border-radius:10px;opacity:.6}
+.bhint{font-size:14px;opacity:.75;margin:0 0 8px 4px}#brew.running .bhint{display:none}
+#brew:not(.running) .blist li{cursor:pointer;opacity:.85}#brew:not(.running) .blist li:hover{background:#ffffff10}
+.blist li.pv{background:#ffffff22;opacity:1;box-shadow:inset 4px 0 0 #f6ece2}
 .blist li.now{background:#ffffff18;opacity:1;box-shadow:inset 4px 0 0 #ff8a76}
 .blist li.done{opacity:.35}
 .blist .n{text-align:right;font-weight:700;white-space:nowrap}
@@ -114,6 +122,13 @@ legend{font-weight:700;padding:0 6px}
 #brew button.pri{background:var(--acc);border-color:var(--acc);min-width:140px}
 .bhead{display:flex;align-items:center;gap:12px;padding:12px max(4vw,16px);border-bottom:1px solid #ffffff20}
 .bhead b{font:800 24px/1 var(--num);margin-right:auto}
+.vsw{display:inline-flex;border:1px solid #ffffff40;border-radius:12px;padding:3px;gap:3px}
+#brew .vsw button{min-height:38px;border:0;border-radius:9px;padding:0 14px}
+#brew .vsw button[aria-pressed=true]{background:#f6ece2;color:#2a1a10}
+.gview{display:none;position:relative;min-height:320px}.gview>svg{position:absolute;inset:0;width:100%;height:100%}
+.stage.graph .ring{aspect-ratio:auto;max-width:none}.stage.graph .ring>svg{display:none}
+.stage.graph .ring .c{position:static;padding:0 0 10px}.stage.graph .ring .el{font-size:clamp(48px,8vw,72px)}
+.stage.graph .gview{display:block}
 #modal{position:fixed;inset:0;background:#0008;z-index:30;display:flex;align-items:center;justify-content:center;padding:16px}
 .mbox{background:var(--paper);border-radius:18px;padding:22px;width:min(560px,100%);max-height:90vh;overflow:auto}
 .mbox textarea{min-height:140px;font-size:13px}
@@ -122,8 +137,8 @@ legend{font-weight:700;padding:0 6px}
 #toast button{min-height:34px;background:transparent;color:inherit;border-color:currentColor}
 .sample{font-size:13px;color:var(--mute);margin-top:8px}
 @media(max-width:899px){.shell{display:block}aside{border:0;min-height:0}body.focus aside{display:none}body.has:not(.focus) #main{display:none}body:not(.has) #list{display:none}.back{display:inline-flex}}
-@media(max-width:1150px){.srow{grid-template-columns:repeat(4,minmax(0,1fr))}.srow .note{grid-column:1/-1}.srow .acts{grid-column:1/-1;justify-content:flex-end}}
-@media(max-width:700px){.bwrap{grid-template-columns:minmax(0,1fr)}.ring{max-width:250px}.bwrap{gap:16px;padding-top:10px}.bctl{margin-top:10px}.srow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.srow .note{grid-column:1/-1}.srow .acts{grid-column:1/-1;justify-content:flex-end}}
+@media(max-width:1150px){.srow{grid-template-columns:repeat(4,minmax(0,1fr))}.srow .ph{display:none}.srow .note{grid-column:1/-1}.srow .acts{grid-column:1/-1;justify-content:flex-end}}
+@media(max-width:700px){.gview{min-height:230px}.bhead{flex-wrap:wrap}.bhead .vsw{order:3}.bhead #bClose{order:4;margin-left:auto}.bwrap{grid-template-columns:minmax(0,1fr)}.ring{max-width:250px}.bwrap{gap:16px;padding-top:10px}.bctl{margin-top:10px}.srow{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.srow .note{grid-column:1/-1}.srow .acts{grid-column:1/-1;justify-content:flex-end}}
 @media(max-width:600px){table{font-size:14px}.stack thead{display:none}.stack tr{display:grid;padding-block:8px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:7em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:6.5em;margin-inline-start:-7em;color:var(--mute);font-size:13px}.stack td:empty{display:none}}
 @media(prefers-reduced-motion:no-preference){.ring .arc{transition:stroke-dashoffset .25s linear}}
 </style>
@@ -252,7 +267,7 @@ function useLocal(){
   render()}
 async function init(){
   render();
-  if(!onClaude){useLocal();return}
+  if(!onClaude){useLocal();try{if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}return}
   $('#syncBtn').style.display='none';setSync('Connecting…');
   const timer=setTimeout(()=>{if(mode==='loading')setSync('Still connecting — your recipes may be out of date')},10000);
   let db=null,id=null;
@@ -271,6 +286,7 @@ async function init(){
 /* ---------- helpers ---------- */
 function allMethods(extra){const s=[...DEFAULT_METHODS,...customMethods];if(extra&&!s.includes(extra))s.push(extra);return s}
 function cum(r,kk=1){let c=0;return(r.steps||[]).map(s=>{const g=(+s.g||0)*kk;c+=g;return{...s,g,c}})}
+function pourDur(s,kk=1){const f=+s.pourFor;if(f>0)return f;return s.type==='bloom'?10:Math.max(3,(+s.g||0)/(6*kk))}
 function totalTime(r){const st=r.steps||[];const last=st.length?Math.max(...st.map(s=>+s.at||0)):0;return Math.max(+r.time||0,last+20)}
 let curHash=location.hash.slice(1);
 function nav(h){h=String(h||'').replace(/^#/,'');curHash=h;mainKey='';try{if(location.hash.slice(1)!==h)location.hash=h}catch(e){}render();try{window.scrollTo(0,0)}catch(e){}}
@@ -355,7 +371,7 @@ function detail(r){
     <div class="stat"><span>Water</span><b class="${sc}">${nr(w,0)} g</b></div>
     <div class="stat"><span>Ratio</span><b>1:${nr(r.water/r.dose)}</b></div>
     <div class="stat"><span>Temperature</span><b>${r.temp?nr(r.temp,0)+'°C':'—'}</b></div>
-    <div class="stat"><span>Grind</span><b>${esc(r.grindSetting||r.grind||'—')}</b>${r.grindSetting&&r.grind?`<small>${esc(r.grind)}</small>`:''}</div>
+    <div class="stat"><span>Grind</span><b${String(r.grindSetting||r.grind||'').length>7?' style="font-size:21px;white-space:normal"':''}>${esc(r.grindSetting||r.grind||'—')}</b>${r.grindSetting&&r.grind?`<small>${esc(r.grind)}</small>`:''}</div>
     <div class="stat"><span>Total time</span><b>${fmt(T)}</b></div>
   </div>
   <div class="scale"><span>Scale to</span><input id="sDose" type="number" min="1" step="0.5" value="${nr(d)}" aria-label="Coffee in grams"> g coffee
@@ -364,7 +380,7 @@ function detail(r){
   <div class="card"><h2>Pour schedule${k!==1?` <span class="muted">· scaled ${nr(k,2)}×</span>`:''}</h2>
     <div class="fig" id="fig"><svg id="chart" role="img" aria-label="Water poured over time"></svg></div>
     ${steps.length?`<table class="stack"><thead><tr><th>Time</th><th>Step</th><th class="n">Add</th><th class="n">Scale reads</th><th>Note</th></tr></thead><tbody>
-    ${steps.map(s=>`<tr><td class="n" style="text-align:left">${fmt(s.at)}</td><td><b>${TYPES[s.type]||'Pour'}</b>${s.style?`<br><small class="muted">${STYLES[s.style]}</small>`:''}</td><td class="n">${s.g?'+'+nr(s.g,0)+' g':''}</td><td class="n">${nr(s.c,0)} g</td><td>${esc(s.note||'')}</td></tr>`).join('')}
+    ${steps.map(s=>`<tr><td class="n" style="text-align:left">${fmt(s.at)}</td><td><b>${TYPES[s.type]||'Pour'}</b>${s.style?`<br><small class="muted">${STYLES[s.style]}</small>`:''}${s.type==='bloom'&&s.g?(()=>{const j=steps.indexOf(s),nx=steps[j+1],pd=pourDur(s,k),w=(nx?nx.at:T)-s.at-pd;return`<br><small class="muted">pour ${fmt(pd)}${w>0?`, then wait ${fmt(w)}`:''}</small>`})():''}</td><td class="n">${s.g?'+'+nr(s.g,0)+' g':''}</td><td class="n">${nr(s.c,0)} g</td><td>${esc(s.note||'')}</td></tr>`).join('')}
     </tbody></table>`:'<p class="muted">No steps yet — edit the recipe to add your pours.</p>'}
   </div>
   <div class="grid2">
@@ -383,25 +399,35 @@ function detail(r){
   $('#delBtn').onclick=()=>modal(`<h2>Delete “${esc(r.name)}”?</h2><p class="muted">You can undo for a few seconds afterwards.</p><div class="bar"><button type="button" class="pri" id="cDel">Delete</button><button type="button" data-close>Cancel</button></div>`,m=>m.querySelector('#cDel').onclick=()=>{closeModal();const keep=JSON.parse(JSON.stringify(r));removeR(r.id);nav('');toast('Recipe deleted','Undo',()=>persist(keep))});
   drawChart(r);
 }
+function curvePts(st,T,kk){const pts=[[0,0]];let c=0;st.forEach((a,i)=>{if(!a.g)return;const nxt=st.slice(i+1).find(z=>z.g);const end=nxt?+nxt.at:T;const dur=Math.max(1,Math.min(pourDur(a,kk),end-a.at-1));pts.push([+a.at,c],[+a.at+dur,c+a.g]);c+=a.g});pts.push([T,c]);return pts}
+function valAt(pts,t){for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];if(t<=b[0])return b[0]===a[0]?b[1]:a[1]+(b[1]-a[1])*Math.max(0,(t-a[0])/(b[0]-a[0]))}return pts[pts.length-1][1]}
+const PAL_LIGHT={grid:'var(--line)',text:'var(--mute)',band:'var(--kraft)',line:'var(--acc)',ink:'var(--ink)'};
+const PAL_DARK={grid:'#ffffff22',text:'#f6ece2aa',band:'#ffffff12',line:'#ff8a76',ink:'#f6ece2'};
+function chartSvg(W,H,st,T,max,kk,pal,now){
+  max=Math.max(1,max);const small=W<520,live=now!=null;
+  const L=small?36:48,R=14,Tp=22,B=30,x=t=>L+(W-L-R)*t/T,y=g=>Tp+(H-Tp-B)*(1-g/max);
+  const pts=curvePts(st,T,kk),p=pts.map((q,i)=>(i?'L':'M')+x(q[0])+','+y(q[1])).join(' ');
+  const bands=st.map((a,i)=>{if(a.type!=='bloom'||!a.g)return'';const nx=st[i+1],end=nx?+nx.at:T,ws=a.at+Math.min(pourDur(a,kk),end-a.at-1);if(end-ws<2)return'';const x1=x(ws),x2=x(end);
+    return`<rect x="${x1}" y="${Tp}" width="${x2-x1}" height="${H-Tp-B}" fill="${pal.band}"/>${x2-x1>64?`<text x="${(x1+x2)/2}" y="${Tp+16}" text-anchor="middle" font-size="12" font-weight="700" fill="${pal.text}">${small?'Wait':'Bloom wait'} ${fmt(end-ws)}</text>`:''}`}).join('');
+  const ticks=[0,.5,1].map(f=>`<line x1="${L}" x2="${W-R}" y1="${y(max*f)}" y2="${y(max*f)}" stroke="${pal.grid}"/><text x="${L-6}" y="${y(max*f)+4}" text-anchor="end" font-size="12" fill="${pal.text}">${nr(max*f,0)}</text>`).join('');
+  const tt=Math.max(30,Math.ceil(T/(small?3:6)/30)*30);let xt='';for(let t=0;t<=T;t+=tt)xt+=`<text x="${x(t)}" y="${H-8}" text-anchor="middle" font-size="12" fill="${pal.text}">${fmt(t)}</text>`;
+  const marks=st.filter(a=>a.g).map(a=>`<circle cx="${x(a.at)}" cy="${y(a.c-a.g)}" r="4" fill="${pal.line}"/>${small?'':`<text x="${x(a.at)+6}" y="${y(a.c)-6}" font-size="12" font-weight="700" fill="${pal.ink}">${nr(a.c,0)} g</text>`}`).join('');
+  const area=`<path d="${p} L${x(T)},${y(0)} L${x(0)},${y(0)}Z" fill="${pal.line}" opacity=".12"/>`,line=`<path d="${p}" fill="none" stroke="${pal.line}" stroke-width="3" stroke-linejoin="round"/>`;
+  if(!live)return bands+ticks+xt+area+line+marks;
+  const n=Math.max(0,Math.min(T,now)),nx=x(n),v=valAt(pts,n),vy=y(v),right=nx>W-90;
+  return`${bands}${ticks}${xt}<defs><clipPath id="bDone"><rect x="0" y="0" width="${nx}" height="${H}"/></clipPath></defs>
+  <g opacity=".3">${area}${line}</g><g clip-path="url(#bDone)">${area}${line}</g>${marks}
+  <line x1="${nx}" x2="${nx}" y1="${Tp-6}" y2="${H-B}" stroke="${pal.ink}" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <circle cx="${nx}" cy="${vy}" r="9" fill="${pal.line}" stroke="${pal.ink}" stroke-width="3"/>
+  <text x="${right?nx-14:nx+14}" y="${Math.max(Tp+14,vy-12)}" text-anchor="${right?'end':'start'}" font-size="16" font-weight="800" fill="${pal.ink}">${nr(v,0)} g</text>`}
 function drawChart(r){
   const s=$('#chart');if(!s)return;roChart&&roChart.disconnect();
-  const draw=()=>{
-    const W=s.clientWidth,H=s.clientHeight;if(!W)return;
-    const st=cum(r,k),T=totalTime(r),max=Math.max(1,r.water*k),small=W<520;
-    const L=small?36:48,R=14,Tp=22,B=30,x=t=>L+(W-L-R)*t/T,y=g=>Tp+(H-Tp-B)*(1-g/max);
-    let p=`M${x(0)},${y(0)}`,c=0;
-    st.forEach((a,i)=>{if(!a.g)return;const nxt=st.slice(i+1).find(z=>z.g);const end=nxt?+nxt.at:T;const dur=Math.max(3,Math.min(a.g/(6*k),end-a.at-1));p+=` L${x(a.at)},${y(c)} L${x(a.at+dur)},${y(c+a.g)}`;c+=a.g});
-    p+=` L${x(T)},${y(c)}`;
-    const ticks=[0,.5,1].map(f=>`<line x1="${L}" x2="${W-R}" y1="${y(max*f)}" y2="${y(max*f)}" stroke="var(--line)"/><text x="${L-6}" y="${y(max*f)+4}" text-anchor="end" font-size="12" fill="var(--mute)">${nr(max*f,0)}</text>`).join('');
-    const tt=Math.max(30,Math.ceil(T/(small?3:6)/30)*30);let xt='';for(let t=0;t<=T;t+=tt)xt+=`<text x="${x(t)}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--mute)">${fmt(t)}</text>`;
-    const marks=st.filter(a=>a.g).map(a=>`<circle cx="${x(a.at)}" cy="${y(a.c-a.g)}" r="4" fill="var(--acc)"/>${small?'':`<text x="${x(a.at)+6}" y="${y(a.c)-6}" font-size="12" font-weight="700" fill="var(--ink)">${nr(a.c,0)} g</text>`}`).join('');
-    s.innerHTML=`${ticks}${xt}<path d="${p} L${x(T)},${y(0)} L${x(0)},${y(0)}Z" fill="var(--acc)" opacity=".12"/><path d="${p}" fill="none" stroke="var(--acc)" stroke-width="3" stroke-linejoin="round"/>${marks}`;
-  };
+  const draw=()=>{const W=s.clientWidth,H=s.clientHeight;if(!W)return;s.innerHTML=chartSvg(W,H,cum(r,k),totalTime(r),r.water*k,k,PAL_LIGHT)};
   roChart=new ResizeObserver(draw);roChart.observe(s);
 }
 
 /* ---------- editor ---------- */
-function blank(){return{id:null,name:'',method:'V60',dose:15,water:250,temp:94,grind:'Medium-fine',grinder:'',grindSetting:'',filter:'',time:180,waterRecipe:'',bean:{},steps:[{type:'bloom',at:0,g:45,note:'Swirl to wet all grounds'},{type:'pour',at:45,g:105,note:''},{type:'pour',at:75,g:100,note:''},{type:'drawdown',at:120,g:0,note:''}],notes:''}}
+function blank(){return{id:null,name:'',method:'V60',dose:15,water:250,temp:94,grind:'Medium-fine',grinder:'',grindSetting:'',filter:'',time:180,waterRecipe:'',bean:{},steps:[{type:'bloom',at:0,g:45,pourFor:10,note:'Swirl to wet all grounds'},{type:'pour',at:45,g:105,note:''},{type:'pour',at:75,g:100,note:''},{type:'drawdown',at:120,g:0,note:''}],notes:''}}
 function fld(l,f,v,t='text',cls='',extra=''){return`<label class="${cls}">${l}<input type="${t}" data-f="${f}" value="${esc(v??'')}" ${extra}></label>`}
 function editor(){
   const r=draft,b=r.bean||(r.bean={});
@@ -448,7 +474,7 @@ function editor(){
       if(t.dataset.f==='dose'||t.dataset.f==='water'){if(r.dose>0&&r.water>0)$('#fRatio').value=nr(r.water/r.dose)}}
     else if(t.id==='fRatio'){if(+t.value>0&&r.dose>0){r.water=Math.round(r.dose*t.value);form.querySelector('[data-f=water]').value=r.water}}
     else if(t.id==='fTime')r.time=parseT(t.value);
-    else if(t.dataset.si!==undefined){const s=r.steps[+t.dataset.si],key=t.dataset.sk;s[key]=key==='at'?parseT(t.value):key==='g'?(+t.value||0):t.value}
+    else if(t.dataset.si!==undefined){const s=r.steps[+t.dataset.si],key=t.dataset.sk;s[key]=key==='at'?parseT(t.value):(key==='g'||key==='pourFor')?(+t.value||0):t.value}
     showTotal();
   });
   form.addEventListener('change',e=>{if(e.target.dataset.sk==='type')renderSteps()});
@@ -463,17 +489,18 @@ function editor(){
     if(!String(r.name).trim()){toast('Give the recipe a name');form.querySelector('[data-f=name]').focus();return}
     if(!(r.dose>0)||!(r.water>0)){toast('Coffee and water need to be above 0 g');return}
     const now=Date.now();const out={...r,name:String(r.name).trim(),dose:+r.dose,water:+r.water,temp:r.temp===''?'':+r.temp,
-      steps:r.steps.map(s=>({type:s.type,style:s.style||'',at:+s.at||0,g:+s.g||0,note:s.note||''})).sort((a,b)=>a.at-b.at),
+      steps:r.steps.map(s=>({type:s.type,style:s.style||'',at:+s.at||0,g:+s.g||0,pourFor:s.type==='bloom'?(+s.pourFor||10):0,note:s.note||''})).sort((a,b)=>a.at-b.at),
       id:r.id||newId(),createdAt:r.createdAt||now,updatedAt:now,sample:false};
     if(await persist(out)){draft=null;nav('recipe-'+out.id)}});
 }
 function renderSteps(){
-  const r=draft;
+  const r=draft;r.steps.forEach(s=>{if(s.type==='bloom'&&!(+s.pourFor>0))s.pourFor=10});
   $('#steps').innerHTML=r.steps.map((s,i)=>`<div class="srow">
     <label>Step<select data-si="${i}" data-sk="type">${Object.entries(TYPES).map(([v,l])=>`<option value="${v}"${v===s.type?' selected':''}>${l}</option>`).join('')}</select></label>
     <label>Pour style<select data-si="${i}" data-sk="style">${Object.entries(STYLES).map(([v,l])=>`<option value="${v}"${v===(s.style||'')?' selected':''}>${l}</option>`).join('')}</select></label>
     <label>Start<input data-si="${i}" data-sk="at" value="${fmt(s.at)}" inputmode="numeric"></label>
     <label>Add (g)<input type="number" min="0" data-si="${i}" data-sk="g" value="${s.g||''}" placeholder="0"></label>
+    ${s.type==='bloom'?`<label>Pour for (s)<input type="number" min="1" data-si="${i}" data-sk="pourFor" value="${+s.pourFor||10}"></label>`:'<span class="ph"></span>'}
     <label class="note">Note<input data-si="${i}" data-sk="note" value="${esc(s.note)}" placeholder="e.g. slow spiral, centre only"></label>
     <div class="acts"><button type="button" data-mv="${i}" data-d="-1" aria-label="Move up">↑</button><button type="button" data-mv="${i}" data-d="1" aria-label="Move down">↓</button><button type="button" data-rm="${i}" aria-label="Remove step">✕</button></div></div>`).join('')||'<p class="muted">No steps yet.</p>';
   $('#steps').querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{r.steps.splice(+b.dataset.rm,1);renderSteps()});
@@ -484,9 +511,10 @@ function showTotal(){const r=draft,t=$('#total');if(!t)return;const used=r.steps
   t.className='total'+(diff?' off':'');t.textContent=`Pours add up to ${nr(used,0)} g of ${nr(r.water,0)} g water`+(diff?` (${diff>0?'+':''}${diff} g)`:' ✓')}
 
 /* ---------- pour animation (top-down view into the dripper) ---------- */
+const VIEW_EXTRA={bloomwait:'Bloom — wait'};
 const STYLES={'':'Default',centre:'Centre pour',spiral:'Spiral',circles:'Circles',pulse:'Pulse pours',swirl:'Swirl the dripper',stir:'Stir',rest:'No pouring'};
 const DEF={bloom:'spiral',pour:'spiral',swirl:'swirl',stir:'stir',wait:'rest',drawdown:'rest'};
-const HOW={centre:'Keep a slow, steady stream in the centre of the bed.',spiral:'Start in the centre, spiral out, then spiral back in. Stay off the paper.',circles:'Pour small, even circles about halfway out from the centre.',pulse:'Pour short bursts in the centre, with a pause between each.',swirl:'Lift the dripper and swirl it gently to flatten the bed.',stir:'Stir gently back and forth across the bed.',rest:'Hands off. Let the water drain through.'};
+const HOW={centre:'Keep a slow, steady stream in the centre of the bed.',spiral:'Start in the centre, spiral out, then spiral back in. Stay off the paper.',circles:'Pour small, even circles about halfway out from the centre.',pulse:'Pour short bursts in the centre, with a pause between each.',swirl:'Lift the dripper and swirl it gently to flatten the bed.',stir:'Stir gently back and forth across the bed.',rest:'Hands off. Let the water drain through.',bloomwait:'Stop pouring. Let the coffee bloom: gas escapes and the bed gently rises.'};
 const styleOf=s=>(s&&(s.style||DEF[s.type]))||'spiral';
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function streamAt(st,t){
@@ -505,7 +533,9 @@ function drawPour(now){
   // plain filter ring and flat coffee bed
   g.fillStyle='#f6ece2';g.beginPath();g.arc(cx,cy,Rf,0,7);g.fill();
   let ox=0,oy=0;if(st==='swirl'&&!reduceMotion){ox=Math.cos(t*5)*Rb*.07;oy=Math.sin(t*5)*Rb*.07}
-  g.fillStyle='#6b4430';g.beginPath();g.arc(cx+ox,cy+oy,Rb,0,7);g.fill();
+  let rise=0;if(st==='bloomwait'){const w=Math.min(1,Math.max(0,B.waitP||0));rise=reduceMotion?.6:Math.sin(Math.PI*w)*(.85+.15*Math.sin(t*1.6))}
+  g.fillStyle='#6b4430';g.beginPath();g.arc(cx+ox,cy+oy,Rb*(1+.05*rise),0,7);g.fill();
+  if(rise>0){const d=g.createRadialGradient(cx-Rb*.15,cy-Rb*.15,0,cx,cy,Rb*.85);d.addColorStop(0,`rgba(176,124,84,${.85*rise})`);d.addColorStop(1,'rgba(176,124,84,0)');g.fillStyle=d;g.beginPath();g.arc(cx,cy,Rb*.85,0,7);g.fill()}
   // stir: a simple spoon line
   if(st==='stir'){const x=cx+(reduceMotion?0:Math.sin(t*3))*Rb*.55;g.strokeStyle='#f6ece2';g.lineCap='round';g.lineWidth=W*.04;g.beginPath();g.moveTo(x,cy-Rb*.5);g.lineTo(x,cy+Rb*.5);g.stroke()}
   // water stream with a short tail
@@ -520,51 +550,79 @@ function animPour(now){if(!B)return;drawPour(now);if(!reduceMotion)B.raf=request
 function setPourStep(s,label){
   const st=s?styleOf(s):'rest';
   if(st!==B.vstyle){B.vstyle=st;B.trail=[];B.ripples=[];if(reduceMotion)drawPour(performance.now())}
-  $('#pStyle').textContent=(label?label+': ':'')+STYLES[st];$('#pHow').textContent=HOW[st]}
+  $('#pStyle').textContent=(label?label+': ':'')+(STYLES[st]||VIEW_EXTRA[st]);$('#pHow').textContent=HOW[st]}
 
 /* ---------- brew mode ---------- */
 let B=null;
 function openBrew(r,kk){
   const steps=cum(r,kk),T=totalTime(r);
-  B={r,steps,T,acc:0,t0:0,run:false,idx:-2,iv:null,ac:null,wl:null,vstyle:'',trail:[],ripples:[],level:0,raf:0};
+  B={r,kk,steps,T,acc:0,t0:0,run:false,idx:-2,iv:null,ac:null,wl:null,vstyle:'',trail:[],ripples:[],level:0,raf:0};
   $('#brew').hidden=false;document.body.style.overflow='hidden';
   const ticks=steps.map(s=>{const a=s.at/T*2*Math.PI-Math.PI/2;return`<line x1="${50+40*Math.cos(a)}" y1="${50+40*Math.sin(a)}" x2="${50+47*Math.cos(a)}" y2="${50+47*Math.sin(a)}" stroke="#f6ece2" stroke-width="1.2" opacity=".8"/>`}).join('');
-  $('#brew').innerHTML=`<div class="bhead"><b>${esc(r.name)}</b><span>${nr(r.dose*kk)} g · ${nr(r.water*kk,0)} g${r.temp?' · '+nr(r.temp,0)+'°C':''}</span><button type="button" id="bClose">Close</button></div>
-  <div class="bwrap"><div><div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="43.5" fill="none" stroke="#ffffff22" stroke-width="5"/>
+  $('#brew').innerHTML=`<div class="bhead"><b>${esc(r.name)}</b><span>${nr(r.dose*kk)} g · ${nr(r.water*kk,0)} g${r.temp?' · '+nr(r.temp,0)+'°C':''}</span>
+  <div class="vsw" role="group" aria-label="Brew view"><button type="button" data-view="timer">Timer</button><button type="button" data-view="graph">Graph</button></div><button type="button" id="bClose">Close</button></div>
+  <div class="bwrap"><div class="stage" id="bStage"><div class="ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="43.5" fill="none" stroke="#ffffff22" stroke-width="5"/>
     <circle class="arc" id="arc" cx="50" cy="50" r="43.5" fill="none" stroke="#ff8a76" stroke-width="5" stroke-linecap="round" stroke-dasharray="273.3" stroke-dashoffset="273.3" transform="rotate(-90 50 50)"/>${ticks}</svg>
     <div class="c"><div class="el" id="bEl">0:00</div><div class="ins" id="bIns">Ready</div><div class="sub" id="bSub">Tare your scale, then press Start</div></div></div>
+    <div class="gview"><svg id="bChart" role="img" aria-label="Pour curve with your current position"></svg></div>
     <div class="bctl" style="justify-content:center"><button type="button" class="pri" id="bGo">Start</button><button type="button" id="bReset">Reset</button></div></div>
     <div><div class="pourv"><canvas id="pourC" role="img" aria-label="How to pour this step, seen from above"></canvas><div><b id="pStyle"></b><span id="pHow"></span></div></div>
-    <ol class="blist" id="bList">${steps.map(s=>`<li><span>${fmt(s.at)}</span><span><b>${TYPES[s.type]||'Pour'}</b> <small style="opacity:.7">· ${STYLES[styleOf(s)]}</small>${s.note?`<br><small>${esc(s.note)}</small>`:''}</span><span class="n">${s.g?`to ${nr(s.c,0)} g`:''}</span></li>`).join('')}<li><span>${fmt(T)}</span><span><b>Finish</b></span><span class="n"></span></li></ol></div></div>`;
+    <p class="bhint">Tap a step to preview how to pour it.</p>
+    <ol class="blist" id="bList">${steps.map((s,j)=>`<li tabindex="0" data-j="${j}"><span>${fmt(s.at)}</span><span><b>${TYPES[s.type]||'Pour'}</b> <small style="opacity:.7">· ${STYLES[styleOf(s)]}</small>${s.note?`<br><small>${esc(s.note)}</small>`:''}</span><span class="n">${s.g?`to ${nr(s.c,0)} g`:''}</span></li>`).join('')}<li tabindex="0" data-j="${steps.length}"><span>${fmt(T)}</span><span><b>Finish</b></span><span class="n"></span></li></ol></div></div>`;
   setPourStep(steps[0],'First');B.raf=requestAnimationFrame(animPour);
   $('#bClose').onclick=closeBrew;
+  $('#bList').onclick=e=>{const li=e.target.closest('li[data-j]');if(li)previewStep(+li.dataset.j)};
+  $('#bList').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){const li=e.target.closest('li[data-j]');if(li){e.preventDefault();previewStep(+li.dataset.j)}}};
+  let v='timer';try{v=localStorage.getItem('brewingtime.view')||'timer'}catch(e){}
+  setView(v);$('#brew').querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{setView(b.dataset.view);try{localStorage.setItem('brewingtime.view',b.dataset.view)}catch(e){}});
+  B.ro=new ResizeObserver(drawBrewChart);B.ro.observe($('#bChart'));
   $('#bGo').onclick=()=>{
     if(!B.ac){try{B.ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
-    if(B.run){B.acc=el();B.run=false;clearInterval(B.iv);$('#bGo').textContent='Resume'}
-    else{B.t0=performance.now();B.run=true;B.iv=setInterval(tick,200);$('#bGo').textContent='Pause';try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(l=>B.wl=l).catch(()=>{})}catch(e){}}
+    if(B.run){B.acc=el();B.run=false;clearInterval(B.iv);$('#brew').classList.remove('running');$('#bGo').textContent='Resume'}
+    else{clearPreview();B.t0=performance.now();B.run=true;$('#brew').classList.add('running');B.iv=setInterval(tick,200);$('#bGo').textContent='Pause';try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(l=>B.wl=l).catch(()=>{})}catch(e){}}
     tick()};
-  $('#bReset').onclick=()=>{clearInterval(B.iv);B.run=false;B.acc=0;B.idx=-2;$('#bGo').textContent='Start';tick();$('#bIns').textContent='Ready';$('#bSub').textContent='Tare your scale, then press Start'};
+  $('#bReset').onclick=()=>{clearInterval(B.iv);B.run=false;$('#brew').classList.remove('running');clearPreview();B.acc=0;B.idx=-2;$('#bGo').textContent='Start';tick();$('#bIns').textContent='Ready';$('#bSub').textContent='Tare your scale, then press Start'};
 }
+function previewStep(j){
+  if(!B||B.run)return;const st=B.steps,s=st[j];B.preview=j;
+  [...$('#bList').children].forEach((li,n)=>li.classList.toggle('pv',n===j));
+  const total=Math.max(1,st.length?st[st.length-1].c:1);
+  if(!s){setPourStep(null,'Preview');B.level=1;$('#bSub').textContent=`Finish at ${fmt(B.T)}`;return}
+  setPourStep(s,'Preview');B.level=s.c/total;
+  let txt=`${TYPES[s.type]||'Pour'} at ${fmt(s.at)}`+(s.g?` · pour to ${nr(s.c,0)} g (+${nr(s.g,0)} g)`:'');
+  if(s.type==='bloom'&&s.g){const nx=st[j+1],pd=pourDur(s,B.kk),w=(nx?nx.at:B.T)-s.at-pd;txt+=` · pour ${fmt(pd)}${w>0?`, then wait ${fmt(w)}`:''}`}
+  $('#pHow').textContent=HOW[styleOf(s)]+(s.note?' Note: '+s.note:'');$('#bSub').textContent=txt}
+function clearPreview(){if(!B)return;B.preview=null;[...$('#bList').children].forEach(li=>li.classList.remove('pv'))}
+function setView(v){if(!B)return;B.view=v==='graph'?'graph':'timer';$('#bStage').classList.toggle('graph',B.view==='graph');
+  $('#brew').querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===B.view)));drawBrewChart()}
+function drawBrewChart(){if(!B||B.view!=='graph')return;const s=$('#bChart');if(!s)return;const W=s.clientWidth,H=s.clientHeight;if(!W||!H)return;
+  s.innerHTML=chartSvg(W,H,B.steps,B.T,B.steps.length?B.steps[B.steps.length-1].c:B.r.water*B.kk,B.kk,PAL_DARK,el())}
 function el(){return B.acc+(B.run?(performance.now()-B.t0)/1000:0)}
 function beep(){const a=B&&B.ac;if(!a)return;try{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;g.gain.setValueAtTime(.2,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.25);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.26)}catch(e){}try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}}
 function tick(){
   if(!B)return;const e=el(),st=B.steps;
   let i=-1;st.forEach((s,j)=>{if(s.at<=e)i=j});
   const done=e>=B.T;const idx=done?st.length:i;
-  if(idx!==B.idx){if(B.idx!==-2&&B.run)beep();B.idx=idx;
+  const cur0=st[i],nx0=st[i+1],bloom=!done&&cur0&&cur0.type==='bloom'&&cur0.g,pd=bloom?pourDur(cur0,B.kk):0,waiting=bloom&&e-cur0.at>=pd;
+  const key=idx+(waiting?'w':'');
+  if(key!==B.key){if(B.key!==undefined&&B.idx!==-2&&B.run)beep();B.key=key}
+  if(idx!==B.idx){B.idx=idx;
     [...$('#bList').children].forEach((li,j)=>{li.className=j===idx?'now':j<idx?'done':''});}
-  $('#bEl').textContent=fmt(Math.floor(e));
+  $('#bEl').textContent=fmt(Math.floor(e));drawBrewChart();
   $('#arc').setAttribute('stroke-dashoffset',273.3*(1-Math.min(1,e/B.T)));
   const cur=st[i];
-  if(done)setPourStep(null,'');else if(i<0)setPourStep(st[0],'First');else setPourStep(cur,'Now');
-  B.level=done?0:cur?(cur.c-cur.g+cur.g*Math.min(1,(e-cur.at)/Math.max(3,cur.g/6)))/Math.max(1,st.length?st[st.length-1].c:1):0;
+  if(waiting){const end=nx0?nx0.at:B.T;B.waitP=(e-cur0.at-pd)/Math.max(1,end-cur0.at-pd)}
+  if(B.preview!=null&&!B.run){}else if(done)setPourStep(null,'');else if(i<0)setPourStep(st[0],'First');else if(waiting)setPourStep({style:'bloomwait'},'Now');else setPourStep(cur,'Now');
+  B.level=done?0:cur?(cur.c-cur.g+cur.g*Math.min(1,(e-cur.at)/Math.max(1,pourDur(cur,B.kk))))/Math.max(1,st.length?st[st.length-1].c:1):0;
   const ins=$('#bIns'),sub=$('#bSub'),nx=st[i+1];
-  if(done){ins.textContent='Done — enjoy your cup';sub.textContent=`Target finish ${fmt(B.T)}`;if(B.run){B.acc=e;B.run=false;clearInterval(B.iv);$('#bGo').textContent='Start';B.acc=0;B.idx=-2}return}
+  if(done){ins.textContent='Done — enjoy your cup';sub.textContent=`Target finish ${fmt(B.T)}`;if(B.run){B.acc=e;B.run=false;clearInterval(B.iv);$('#brew').classList.remove('running');$('#bGo').textContent='Start';B.acc=0;B.idx=-2}return}
   if(i<0){ins.innerHTML='Get ready';sub.textContent=nx?`${TYPES[nx.type]} in ${fmt(nx.at-e)}`:''}
+  else if(waiting){ins.innerHTML='Bloom · <b>wait</b>';sub.textContent=nx0?`Next: ${TYPES[nx0.type]}${nx0.g?' to '+nr(nx0.c,0)+' g':''} in ${fmt(nx0.at-e)}`:`Finish at ${fmt(B.T)}`}
+  else if(bloom){ins.innerHTML=`Bloom to <b>${nr(cur0.c,0)} g</b>`;sub.textContent=`Pour for ${fmt(Math.ceil(pd-(e-cur0.at)))} more, then wait`}
   else{const s=st[i];ins.innerHTML=s.g?`${TYPES[s.type]} to <b>${nr(s.c,0)} g</b>`:`${TYPES[s.type]||'Wait'} · hold at ${nr(s.c,0)} g`;
     sub.textContent=(s.g?`+${nr(s.g,0)} g`:(s.note||''))+(nx?` · next: ${TYPES[nx.type]}${nx.g?' to '+nr(nx.c,0)+' g':''} in ${fmt(nx.at-e)}`:` · finish at ${fmt(B.T)}`)}
 }
-function closeBrew(){if(B){clearInterval(B.iv);cancelAnimationFrame(B.raf);try{B.wl&&B.wl.release()}catch(e){}try{B.ac&&B.ac.close()}catch(e){}}B=null;$('#brew').hidden=true;$('#brew').innerHTML='';document.body.style.overflow=''}
+function closeBrew(){if(B){clearInterval(B.iv);try{B.ro&&B.ro.disconnect()}catch(e){}cancelAnimationFrame(B.raf);try{B.wl&&B.wl.release()}catch(e){}try{B.ac&&B.ac.close()}catch(e){}}B=null;$('#brew').hidden=true;$('#brew').innerHTML='';document.body.style.overflow=''}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#modal').hidden)closeModal();else if(B)closeBrew()}else if(e.key===' '&&B&&e.target===document.body){e.preventDefault();$('#bGo').click()}});
 
 /* ---------- backup ---------- */
@@ -590,7 +648,7 @@ async function addSamples(){
   const list=[
     mk({name:'Bright single cup',method:'V60',dose:15,water:250,temp:94,grind:'Medium-fine',grindSetting:'',filter:'Tabbed paper, rinsed',time:180,
       bean:{name:'Washed Ethiopian',origin:'Ethiopia',process:'Washed',roast:'Light'},
-      steps:[{type:'bloom',at:0,g:45,style:'spiral',note:'Swirl to wet all grounds'},{type:'pour',at:45,g:105,style:'spiral',note:'Steady spiral'},{type:'pour',at:75,g:100,style:'centre',note:'Centre pour'},{type:'swirl',at:105,g:0,note:'Gentle swirl to flatten the bed'},{type:'drawdown',at:110,g:0,note:'Aim to finish around 3:00'}],
+      steps:[{type:'bloom',at:0,g:45,pourFor:10,style:'spiral',note:'Swirl to wet all grounds'},{type:'pour',at:45,g:105,style:'spiral',note:'Steady spiral'},{type:'pour',at:75,g:100,style:'centre',note:'Centre pour'},{type:'swirl',at:105,g:0,note:'Gentle swirl to flatten the bed'},{type:'drawdown',at:110,g:0,note:'Aim to finish around 3:00'}],
       notes:'Tastes sour or thin → grind finer. Bitter or drying → grind coarser.'},0),
     mk({name:'Kalita three pours',method:'Kalita Wave',dose:20,water:320,temp:93,grind:'Medium',time:210,
       bean:{name:'Colombian Caturra',origin:'Colombia',variety:'Caturra',process:'Washed',roast:'Medium-light'},

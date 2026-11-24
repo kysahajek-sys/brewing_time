@@ -1,0 +1,16 @@
+{
+  "name": "Brewing Time",
+  "short_name": "Brewing Time",
+  "description": "Filter coffee recipes with a guided brew timer",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#3a2215",
+  "theme_color": "#3a2215",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
